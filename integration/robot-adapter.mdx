@@ -3,9 +3,9 @@ title: "Robot control interface"
 description: "The ROS 2 topics, message types, units, and rates for arm, gripper, and mobile-base control."
 ---
 
-This is the contract for controlling your robot. If your robot runs ROS 2, you implement this with standard message types — no custom packages and no Sentinel code on your robot. You expose topics; the runtime publishes commands and reads your state.
+Here's how the runtime controls your robot. If your robot runs ROS 2, you do this with standard message types — no custom packages and no Sentinel code on your robot. You expose topics; the runtime sends commands and reads your state.
 
-Topic names are agreed with us and set in your config. Everything else on this page is fixed.
+You pick the topic names and we put them in your config. Everything else on this page is fixed.
 
 ## The flow
 
@@ -27,13 +27,13 @@ Two loops:
 - **Command in** — the runtime sends where it wants your joints to go.
 - **State out** — you continuously report where your joints actually are.
 
-Both must work. The state loop is not optional: the runtime needs your state to compute commands and to confirm the robot is healthy enough to arm.
+Both must work. The state loop isn't optional — the runtime needs your state to compute commands and to confirm the robot is ready to arm.
 
-## Before anything: your robot description (URDF)
+## First: your robot description (URDF)
 
-Sentinel needs your robot's URDF — the kinematic model — to run inverse kinematics, enforce limits, and smooth motion. Even though the runtime talks to your robot only over topics, it can't compute safe commands without knowing your robot's geometry.
+Sentinel needs your robot's URDF — the model of its joints and links — to run inverse kinematics, apply limits, and smooth motion. The runtime only talks to your robot over topics, but it still needs to know the robot's geometry to send safe commands.
 
-You can provide the description three ways. Tell us which fits your stack:
+You can give us the description three ways. Tell us which fits your setup:
 
 | Source | What it is | When to use it |
 | --- | --- | --- |
@@ -42,16 +42,16 @@ You can provide the description three ways. Tell us which fits your stack:
 | **Topic** | We subscribe to your latched `robot_description` topic | You publish the description the standard ROS 2 way |
 
 <Warning>
-  **If you provide the description live (topic or parameter), it must be available before the Sentinel stack comes up.** When the runtime starts, it waits a short window (about 10 seconds by default) for your description to appear, then gives up and fails to start. Make sure your `robot_state_publisher` — or whatever holds the description — is running and **latched** (publishes to late subscribers) before or as the runtime launches. A file source has no such timing requirement.
+  If you give us the description live (topic or parameter), it has to be available before Sentinel starts. The runtime waits about 10 seconds for it, then gives up and won't start. So make sure your `robot_state_publisher` — or whatever holds the description — is running and **latched** (so it reaches late subscribers) before the runtime launches. A file has no such timing requirement.
 </Warning>
 
 <Note>
-  Once resolved, the runtime republishes your description on a latched `/<your-namespace>/robot_description` topic, so the rest of the system has a single canonical copy. On a multi-arm robot, each arm has its own description — give each a distinct, namespaced topic rather than one shared `/robot_description`. We sort this out with you.
+  Once it has the description, the runtime republishes it on a latched `/<your-namespace>/robot_description` topic so the rest of the system has one copy. On a multi-arm robot, each arm has its own description — give each one its own namespaced topic rather than a single shared `/robot_description`. We sort this out with you.
 </Note>
 
 ## Topic names
 
-You choose the topic names; we write them into your config. There's no fixed requirement — just keep them clear and namespaced. A common convention:
+You choose the topic names and we put them in your config. There's no required name — just keep them clear and namespaced. A common convention:
 
 | Flow | Example topic |
 | --- | --- |
@@ -85,7 +85,7 @@ def on_command(msg: JointTrajectory):
 ```
 
 <Note>
-  **Joint names come from your URDF, and ordering is remappable — just talk to us.** Sentinel learns your joint names and kinematics from the URDF you give us, so the names you already use are the names in the messages. You don't rename joints or reorder anything to match Sentinel — we handle the mapping in your config, and the same applies to the `JointState` you publish back. If your naming or ordering changes, tell us and we update the config; no controller changes needed. We'll walk you through this together during setup.
+  Joint names come from your URDF, and ordering can be remapped — just ask. Sentinel reads your joint names from the URDF you give us, so the names you already use are the names in the messages. You don't rename or reorder anything to match Sentinel; we handle the mapping in your config, and the same applies to the `JointState` you publish back. If your names or order change, tell us and we update the config — no changes on your side. We'll walk through this with you during setup.
 </Note>
 
 ## Arm: reporting state
@@ -127,10 +127,10 @@ If your robot has a gripper, subscribe to a gripper command topic. We pick the m
 | Meaning | A normalized open amount, mapped to your gripper's real range in your config |
 | Timing | Event-driven |
 
-The runtime sends a normalized open/close command; your config maps it to your gripper's actual travel (so you don't hard-code limits in your controller). Optionally, publish gripper position back as a `sensor_msgs/JointState` so the operator sees real feedback.
+The runtime sends a normalized open/close command, and your config maps it to your gripper's real travel — so you don't hard-code limits in your controller. You can also publish the gripper position back as a `sensor_msgs/JointState` so the operator sees feedback.
 
 <Note>
-  Don't worry about the exact range or the message variant — we choose them with you based on your gripper and write them into the config. You just consume the topic and drive your gripper.
+  Don't worry about the exact range or which message type to use — we pick those with you based on your gripper and put them in the config. You just read the topic and drive your gripper.
 </Note>
 
 ## Mobile base
@@ -148,7 +148,7 @@ This is the standard ROS 2 velocity command. Use `linear.x` / `linear.y` and `an
 
 ## More capabilities
 
-A robot is just a set of capabilities, and the generic interface covers far more than an arm. Each one follows the same pattern as above — your controller subscribes to a command topic (and publishes state where it makes sense) over standard ROS 2.
+The interface covers more than an arm. Each capability works the same way — your controller subscribes to a command topic (and publishes state where it makes sense) over standard ROS 2.
 
 | Capability | What the operator drives | Typical command |
 | --- | --- | --- |
@@ -159,10 +159,10 @@ A robot is just a set of capabilities, and the generic interface covers far more
 | **PTZ camera** | Aiming and zooming a camera | A pan/tilt/zoom velocity command |
 | **Something else** | Lift, tool changer, extra sensor head… | We define it with you |
 
-Because the right message format depends on your specific hardware (a neck might take a joint trajectory or a pose; a lift might take a position or a velocity), we settle the exact topic and message for each of these **with you** rather than fixing it here. The contract is always ROS 2-native and follows the same rules: SI units, agreed QoS, act only during teleoperation, and publish state back when a consumer needs it.
+The right message depends on your hardware — a neck might take a joint trajectory or a pose, a lift might take a position or a velocity — so we settle the exact topic and message for each one with you. It's always standard ROS 2 and follows the same rules: SI units, the QoS we give you, move only during teleoperation, and publish state back when something needs it.
 
 <Card title="Setting up a neck, PTZ, or something else?" icon="slack" href="https://avea-robotics.slack.com" horizontal>
-  Tell us what the capability does and how your hardware is driven, and we'll define the contract and add it to your config.
+  Tell us what it does and how your hardware is driven, and we'll add it to your config.
 </Card>
 
 ## Putting it together
@@ -202,7 +202,7 @@ sequenceDiagram
 </Steps>
 
 <Tip>
-  Already running `ros2_control`, MoveIt, or your own joint controller? You don't need to replace it. As long as something on your robot consumes a `JointTrajectory` and publishes `JointState`, you're compatible. Tell us your stack and we'll match the contract to it.
+  Already running `ros2_control`, MoveIt, or your own joint controller? You don't need to replace it. As long as something on your robot takes a `JointTrajectory` and publishes `JointState`, it works. Tell us your setup and we'll match it.
 </Tip>
 
 ## Next

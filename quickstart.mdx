@@ -1,18 +1,16 @@
 ---
 title: "Quickstart"
-description: "The path from a ROS 2 robot to a live VR teleoperation session."
+description: "The steps from a ROS 2 robot to driving it in VR."
 ---
 
-Integration is a short, guided process. You build a small ROS 2 interface on your robot, we build your configuration file, and together we bring up a live session. This page is the map.
-
-## The journey
+Here's the whole process, start to finish. You set up a few ROS 2 topics on your robot, we write your config file, and we bring it up together.
 
 ```mermaid
 flowchart TD
-    A["1 · Talk to us<br/>describe your robot"] --> B["2 · We build your config<br/>topics, joints, limits"]
-    B --> C["3 · You implement controllers<br/>command in, state out"]
+    A["1 · Talk to us<br/>describe your robot"] --> B["2 · We write your config<br/>topics, joints, limits"]
+    B --> C["3 · You set up your topics<br/>commands in, state out"]
     C --> D["4 · Bring-up together<br/>arm, test, tune"]
-    D --> E["5 · Teleoperate 🎉<br/>drive in VR, record data"]
+    D --> E["5 · Drive it in VR 🎉"]
 
     style A fill:#dcfce7,stroke:#16A34A
     style E fill:#16A34A,color:#fff,stroke:#15803D
@@ -22,55 +20,55 @@ flowchart TD
 
 <Steps>
   <Step title="Tell us about your robot">
-    Message us on [Slack](https://avea-robotics.slack.com) and describe your setup: what kind of robot it is (arm, dual-arm, mobile base, humanoid), how many joints, what gripper, what cameras, what extras like a camera neck or PTZ head, and how you run ROS 2 today.
+    Message us on [Slack](https://avea-robotics.slack.com) and describe your setup: what kind of robot it is (arm, dual-arm, mobile base, humanoid), how many joints, what gripper and cameras you have, any extras like a camera neck or PTZ head, and how you run ROS 2 today.
 
-    We'll ask for your URDF and the topic names you'd like to use. This conversation is what lets us build a config tuned to your hardware.
+    We'll ask for your URDF and the topic names you want to use.
   </Step>
 
-  <Step title="We build your configuration file">
-    Sentinel is driven by a single configuration file that describes your robot's kinematics, control behavior, safety limits, button mappings, and which topics to use. **We write and tune this file for you** — it's the part that needs our expertise.
+  <Step title="We write your config file">
+    Sentinel uses one config file that describes your robot's kinematics, motion settings, safety limits, button mappings, and topics. We write and tune it for you.
 
-    You don't need to understand its internals. You only need to know the topics and message formats it expects, which we agree on together. [More on the config file →](/integration/configuration)
+    You only need to know the topics and message types it uses, which we agree on together. [More about the config file →](/integration/configuration)
   </Step>
 
-  <Step title="Implement your controllers">
-    On your robot, implement the ROS 2 side of the contract:
+  <Step title="Set up your ROS 2 topics">
+    On your robot:
 
-    - **Subscribe** to a command topic and drive your joints / gripper / base to match.
-    - **Publish** your current joint state continuously so Sentinel knows where you are.
+    - **Subscribe** to a command topic and move your joints, gripper, or base to match.
+    - **Publish** your joint state so Sentinel knows where the robot is.
     - **Publish** a compressed camera image for the operator's view.
 
-    These use standard ROS 2 message types at defined rates. The full contract is in [Robot control interface](/integration/robot-adapter) and [Camera interface](/integration/camera-adapter).
+    These use standard ROS 2 messages. The details are in [Robot control interface](/integration/robot-adapter) and [Camera interface](/integration/camera-adapter).
   </Step>
 
   <Step title="Bring it up together">
-    We connect the runtime to your robot and walk through bring-up: confirm state is flowing, **arm** the robot, run a homing move, then **start teleoperation**. We tune limits and motion smoothing for your hardware as we go.
+    We connect the runtime to your robot and walk through it: confirm state is flowing, **arm** the robot, run a homing move, then **start teleoperation**. We tune limits and motion smoothing for your hardware as we go.
   </Step>
 
-  <Step title="Teleoperate and record">
-    An operator puts on the headset and drives your robot. Every session can be recorded as training data, exported in a standard format.
+  <Step title="Drive it and record">
+    An operator puts on the headset and drives your robot. You can record each session as training data and export it in a standard format.
   </Step>
 </Steps>
 
-## What you need to understand first
+## Read these first
 
-You don't need to learn Sentinel's internals, but a few concepts make the contract make sense. Read these before you start building:
+A few concepts make everything else easier to follow:
 
 <CardGroup cols={2}>
   <Card title="How Sentinel connects" icon="diagram-project" href="/concepts/architecture">
-    The runtime, the cloud, and where your robot plugs in.
+    The runtime, the cloud, and where your robot fits.
   </Card>
   <Card title="State machine" icon="diagram-predecessor" href="/concepts/state-machine">
-    The difference between **armed** and **teleoperating** — and when commands actually reach your motors.
+    The difference between **armed** and **teleoperating**, and when commands reach your motors.
   </Card>
-  <Card title="Controllers & buttons" icon="gamepad" href="/concepts/controllers">
-    What the operator's buttons do, and how teleop is started and stopped.
+  <Card title="Controllers and buttons" icon="gamepad" href="/concepts/controllers">
+    What the operator's buttons do, and how teleop starts and stops.
   </Card>
   <Card title="Robot control interface" icon="robot" href="/integration/robot-adapter">
-    The topics, messages, units, and rates your robot must support.
+    The topics, messages, units, and rates your robot needs.
   </Card>
 </CardGroup>
 
 <Tip>
-  Stuck or unsure how a concept maps to your robot? That's expected — integration is collaborative. Ping us on [Slack](https://avea-robotics.slack.com) and we'll help.
+  Not sure how something maps to your robot? Ask us on [Slack](https://avea-robotics.slack.com) — we set this up with you.
 </Tip>

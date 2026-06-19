@@ -1,84 +1,84 @@
 ---
 title: "Introduction"
-description: "Bring your robot into Sentinel teleoperation over standard ROS 2 topics."
+description: "Connect your ROS 2 robot to Sentinel teleoperation."
 ---
 
-Sentinel lets a person wearing a VR headset drive your robot in real time — reaching, grasping, looking around, and moving — and records everything they do as training data. Your operator sees through the robot's cameras and moves the robot with their hands and the controllers.
+Sentinel lets a person in a VR headset drive your robot in real time — reaching, grasping, looking around, and moving — and records what they do as training data. The operator sees through your robot's cameras and moves it with their hands.
 
-This site is for **robot builders who want to connect their robot to Sentinel**. If your robot already runs ROS 2, you can integrate without writing any Sentinel-specific code. You expose a few standard ROS 2 topics, and Sentinel does the rest.
+These docs are for robot builders connecting a robot to Sentinel. If your robot runs ROS 2, you don't write any Sentinel-specific code. You publish and subscribe to a few standard ROS 2 topics, and Sentinel handles the rest.
 
-<Card title="See how integration works" icon="route" href="/quickstart" horizontal>
-  The fastest path from "we have a robot" to "an operator is driving it in VR."
+<Card title="How integration works" icon="route" href="/quickstart" horizontal>
+  Start here for the steps from a ROS 2 robot to driving it in VR.
 </Card>
 
 ## How it fits together
 
-Sentinel sits between the VR headset and your robot. The headset and the cloud are ours. The robot — and the ROS 2 interface it exposes — is yours.
+Sentinel sits between the headset and your robot. The headset and cloud are ours. The robot and its ROS 2 topics are yours.
 
 ```mermaid
 flowchart LR
     H["🥽 VR headset<br/>(operator)"] <--> C["☁️ Sentinel cloud"]
     C <--> R["⚙️ Sentinel runtime"]
-    R <-->|"standard ROS 2 topics"| Y["🤖 Your robot"]
+    R <-->|"ROS 2 topics"| Y["🤖 Your robot"]
 
     style Y fill:#16A34A,color:#fff,stroke:#15803D
     style R fill:#dcfce7,stroke:#16A34A,color:#000
 ```
 
-The **Sentinel runtime** runs near your robot. It takes the operator's hand motion, turns it into joint commands for your arm, sends gripper open/close commands, points your camera-neck, and streams your camera feed back up to the headset. Everything it sends to and receives from your robot travels over **plain ROS 2 topics that you already know how to publish and subscribe to**.
+The **runtime** runs near your robot. It turns the operator's hand motion into joint commands, sends gripper and base commands, points your camera, and streams your camera feed back to the headset. It talks to your robot over plain ROS 2 topics.
 
-## What you provide
+## What you do
 
-To integrate, your robot needs to do three things over ROS 2:
+Your robot needs to do three things over ROS 2:
 
 <CardGroup cols={3}>
   <Card title="Accept commands" icon="arrow-down-to-line">
     Subscribe to a command topic and move your joints, gripper, or base to match.
   </Card>
   <Card title="Report state" icon="arrow-up-from-line">
-    Publish your current joint positions so Sentinel knows where the robot is.
+    Publish your joint positions so Sentinel knows where the robot is.
   </Card>
   <Card title="Stream video" icon="video">
     Publish a compressed camera image so the operator can see.
   </Card>
 </CardGroup>
 
-That's the whole contract. The message types are standard ROS 2 messages — `JointTrajectory`, `JointState`, `Twist`, and `CompressedImage`. No custom message packages, no SDK to link against.
+These use standard ROS 2 messages — `JointTrajectory`, `JointState`, `Twist`, and `CompressedImage`. No custom message packages, no SDK.
 
-## What we provide
+## What we do
 
 <CardGroup cols={2}>
   <Card title="The runtime" icon="microchip">
-    The software that translates VR motion into robot commands, runs inverse kinematics, smooths trajectories, and enforces safety limits.
+    Turns VR motion into robot commands: inverse kinematics, motion smoothing, and safety limits.
   </Card>
   <Card title="Your config file" icon="file-pen">
-    We build a configuration file tailored to your robot — your topics, joints, and limits. You tell us your setup; we write it. <a href="/integration/configuration">Learn how →</a>
+    We write the configuration for your robot — your topics, joints, and limits. You describe your setup; we build it. <a href="/integration/configuration">More →</a>
   </Card>
-  <Card title="The cloud + headset" icon="cloud">
-    Streaming, the VR application, recording, and dataset export.
+  <Card title="Cloud and headset" icon="cloud">
+    Streaming, the VR app, recording, and dataset export.
   </Card>
-  <Card title="Integration support" icon="headset">
-    A real person to get you from first message to first teleoperation session.
+  <Card title="Support" icon="headset">
+    A person to help you go from first message to driving the robot.
   </Card>
 </CardGroup>
 
 <Note>
-  **You don't write a config file by hand.** Sentinel's configuration captures deep details about kinematics, control, and safety. You describe your robot to us, and we generate and tune the config for you. These docs explain the parts you need to understand — the ROS 2 contract and the concepts behind the buttons and states — so you can build and test your side with confidence.
+  You don't write the config file yourself. It holds detailed kinematics, control, and safety settings, so you describe your robot and we build and tune it for you. These docs explain what you need to know to set up your robot's ROS 2 side.
 </Note>
 
-## Where to go next
+## Next
 
 <CardGroup cols={2}>
   <Card title="Quickstart" icon="rocket" href="/quickstart">
-    The integration journey, end to end.
+    The integration steps, start to finish.
   </Card>
   <Card title="How Sentinel connects" icon="diagram-project" href="/concepts/architecture">
-    The pieces and how data flows between them.
+    The pieces and how data moves between them.
   </Card>
-  <Card title="The state machine" icon="diagram-predecessor" href="/concepts/state-machine">
-    When your robot is armed, and when commands actually flow.
+  <Card title="State machine" icon="diagram-predecessor" href="/concepts/state-machine">
+    When your robot is armed, and when commands flow.
   </Card>
   <Card title="Robot control interface" icon="robot" href="/integration/robot-adapter">
-    The exact topics, messages, and rates your controllers must support.
+    The topics, messages, and rates your robot needs.
   </Card>
 </CardGroup>

@@ -3,9 +3,9 @@ title: "Camera interface"
 description: "Stream a camera feed to the operator's headset over a standard ROS 2 image topic."
 ---
 
-The operator drives your robot by looking through its cameras. To stream a feed, you publish a compressed image on a ROS 2 topic, and the runtime forwards it to the headset. That's the whole integration.
+The operator drives your robot by looking through its cameras. To stream a feed, you publish a compressed image on a ROS 2 topic and the runtime forwards it to the headset. That's it.
 
-If your camera already publishes to ROS 2 — most do — this is often just pointing us at an existing topic.
+If your camera already publishes to ROS 2 — most do — this is often just pointing us at a topic you already have.
 
 ## The flow
 
@@ -18,9 +18,9 @@ flowchart LR
     style CAM fill:#16A34A,color:#fff,stroke:#15803D
 ```
 
-You publish; the runtime subscribes and streams. Video is one-way — the runtime never sends anything back on this topic.
+You publish, the runtime subscribes and streams it. Video is one-way — the runtime never sends anything back on this topic.
 
-## The contract
+## What to publish
 
 | Property | Value |
 | --- | --- |
@@ -84,5 +84,5 @@ Tell us how many cameras you have and what each one is for; we wire them into yo
 ## Next
 
 <Card title="Your config file" icon="file-pen" href="/integration/configuration" horizontal>
-  How everything you've defined gets assembled into a working setup.
+  How your topics, joints, and cameras come together into a working setup.
 </Card>

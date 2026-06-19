@@ -1,11 +1,11 @@
 ---
 title: "The state machine"
-description: "When your robot is powered, when it's armed, and when teleoperation commands actually flow."
+description: "When your robot is powered, when it's armed, and when commands reach your motors."
 ---
 
-Sentinel always knows what mode your robot is in, and that mode controls whether commands reach your motors. Understanding it answers the most important integration question: **when should my controllers act on commands?**
+Sentinel always knows what mode your robot is in, and that mode decides whether commands reach your motors. This answers the main question you'll have when setting up your robot: **when should it act on commands?**
 
-The short version: **commands only flow during teleoperation.** In every other state your robot should hold still, even if it's powered and ready.
+The short answer: **only during teleoperation.** In every other mode your robot holds still, even when it's powered and ready.
 
 ## The states
 
@@ -32,35 +32,35 @@ stateDiagram-v2
 
 | State | What it means | Do your motors move? |
 | --- | --- | --- |
-| **Disarmed** | Powered down or safely idle. The default resting state. | No |
-| **Arming** | Coming online — enabling motors and getting ready. | Coming up |
-| **Armed** | Powered and ready, but **not** taking operator input yet. Safe to run scripted moves like homing. | Only for scripted moves |
-| **Homing** | Moving to a known home or start pose. | Yes — a planned, internal move |
-| **Teleop&nbsp;active** | The operator is driving the robot live. | **Yes — operator commands** |
-| **E‑stop** | Emergency stop. All motion halts immediately. | No — stopped |
+| **Disarmed** | Powered down or idle. The resting state. | No |
+| **Arming** | Coming online and enabling motors. | Coming up |
+| **Armed** | Powered and ready, but not taking operator input yet. Can run set moves like homing. | Only for set moves |
+| **Homing** | Moving to a known home or start pose. | Yes — a planned move |
+| **Teleop&nbsp;active** | The operator is driving the robot. | **Yes — operator commands** |
+| **E‑stop** | Emergency stop. All motion halts at once. | No — stopped |
 
-## The key distinction: armed vs. teleoperating
+## Armed vs. teleoperating
 
-This trips up most integrations, so it's worth being explicit.
+This is the part to get right.
 
 <CardGroup cols={2}>
   <Card title="Armed" icon="circle-pause">
-    Motors are enabled and the robot is ready. But **no operator commands are being sent.** Your robot should hold its current position. This is the safe staging state before teleop.
+    Motors are on and the robot is ready, but no operator commands are coming. Your robot holds its current position.
   </Card>
   <Card title="Teleop active" icon="circle-play">
-    The operator is actively driving. **Joint commands now stream to your robot** and you should execute them. Gripper and base commands flow here too.
+    The operator is driving. Joint, gripper, and base commands stream to your robot, and you move to match.
   </Card>
 </CardGroup>
 
-Why split them? So the robot can be powered, homed, and standing by — without lurching the moment it comes online. The operator deliberately starts teleoperation (by squeezing a grip, see [Controllers](/concepts/controllers)), and only then does your robot start following their hand.
+The two are separate so the robot can be powered, homed, and standing by without moving the moment it comes online. The operator starts teleoperation on purpose — by squeezing a grip, see [Controllers](/concepts/controllers) — and only then does your robot start following their hand.
 
 <Warning>
-  **Build your controllers to respect this.** Hold position when armed; follow commands when teleoperating. Sentinel stops sending arm commands when teleop stops, but your side should not assume a command stream is always present.
+  Hold position when armed; move when teleoperating. Sentinel stops sending arm commands when teleop stops, so don't assume commands are always arriving.
 </Warning>
 
 ## How states change
 
-The operator changes states with controller buttons; the runtime can also change them automatically (for example, arriving home returns to **armed**). You don't trigger these transitions — you react to the resulting command flow.
+The operator changes states with controller buttons. The runtime also changes some on its own (for example, arriving home returns to **armed**). You don't trigger these — you just react to whether commands are arriving.
 
 ```mermaid
 flowchart LR
@@ -73,27 +73,27 @@ flowchart LR
     style ES fill:#ef4444,color:#fff
 ```
 
-These are the default mappings and they're configurable. See [Controllers & buttons](/concepts/controllers).
+These are the defaults, and they're configurable. See [Controllers and buttons](/concepts/controllers).
 
-## What this means for your robot
+## What your robot should do
 
 <Steps>
   <Step title="Always report state">
-    Publish your joint state continuously, in **every** mode — even when disarmed. The runtime needs to know where you are before it will let you arm. See the [control interface](/integration/robot-adapter).
+    Publish your joint state all the time, in every mode — even disarmed. The runtime needs to know where you are before it will arm. See the [control interface](/integration/robot-adapter).
   </Step>
   <Step title="Hold still unless teleoperating">
-    When armed (but not teleoperating), keep your current position. Don't expect or require a command stream.
+    When armed but not teleoperating, keep your current position.
   </Step>
-  <Step title="Follow commands during teleop">
-    When teleop is active, execute the joint, gripper, and base commands as they arrive.
+  <Step title="Move during teleop">
+    When teleop is active, run the joint, gripper, and base commands as they arrive.
   </Step>
-  <Step title="Stop safely on e-stop">
+  <Step title="Stop on e-stop">
     Treat an emergency stop as an immediate, safe halt of all motion.
   </Step>
 </Steps>
 
 ## Next
 
-<Card title="Controllers & buttons" icon="gamepad" href="/concepts/controllers" horizontal>
+<Card title="Controllers and buttons" icon="gamepad" href="/concepts/controllers" horizontal>
   How the operator arms the robot and starts teleoperation.
 </Card>
