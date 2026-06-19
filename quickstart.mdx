@@ -1,47 +1,76 @@
 ---
 title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+description: "The path from a ROS 2 robot to a live VR teleoperation session."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
+Integration is a short, guided process. You build a small ROS 2 interface on your robot, we build your configuration file, and together we bring up a live session. This page is the map.
 
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
+## The journey
 
-## Prerequisites
+```mermaid
+flowchart TD
+    A["1 · Talk to us<br/>describe your robot"] --> B["2 · We build your config<br/>topics, joints, limits"]
+    B --> C["3 · You implement controllers<br/>command in, state out"]
+    C --> D["4 · Bring-up together<br/>arm, test, tune"]
+    D --> E["5 · Teleoperate 🎉<br/>drive in VR, record data"]
 
-Before you begin, you must have:
+    style A fill:#dcfce7,stroke:#16A34A
+    style E fill:#16A34A,color:#fff,stroke:#15803D
+```
 
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+## Steps
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
+  <Step title="Tell us about your robot">
+    Message us on [Slack](https://avearobotics.com/slack) and describe your setup: what kind of robot it is (arm, dual-arm, mobile base, humanoid), how many joints, what gripper, what cameras, what extras like a camera neck or PTZ head, and how you run ROS 2 today.
 
-    ```bash
-    npm install your-package
-    ```
+    We'll ask for your URDF and the topic names you'd like to use. This conversation is what lets us build a config tuned to your hardware.
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
 
-    ```bash
-    your-cli init
-    ```
+  <Step title="We build your configuration file">
+    Sentinel is driven by a single configuration file that describes your robot's kinematics, control behavior, safety limits, button mappings, and which topics to use. **We write and tune this file for you** — it's the part that needs our expertise.
+
+    You don't need to understand its internals. You only need to know the topics and message formats it expects, which we agree on together. [More on the config file →](/integration/configuration)
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
 
-    ```bash
-    your-cli start
-    ```
+  <Step title="Implement your controllers">
+    On your robot, implement the ROS 2 side of the contract:
+
+    - **Subscribe** to a command topic and drive your joints / gripper / base to match.
+    - **Publish** your current joint state continuously so Sentinel knows where you are.
+    - **Publish** a compressed camera image for the operator's view.
+
+    These use standard ROS 2 message types at defined rates. The full contract is in [Robot control interface](/integration/robot-adapter) and [Camera interface](/integration/camera-adapter).
+  </Step>
+
+  <Step title="Bring it up together">
+    We connect the runtime to your robot and walk through bring-up: confirm state is flowing, **arm** the robot, run a homing move, then **start teleoperation**. We tune limits and motion smoothing for your hardware as we go.
+  </Step>
+
+  <Step title="Teleoperate and record">
+    An operator puts on the headset and drives your robot. Every session can be recorded as training data, exported in a standard format.
   </Step>
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+## What you need to understand first
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
+You don't need to learn Sentinel's internals, but a few concepts make the contract make sense. Read these before you start building:
+
+<CardGroup cols={2}>
+  <Card title="How Sentinel connects" icon="diagram-project" href="/concepts/architecture">
+    The runtime, the cloud, and where your robot plugs in.
+  </Card>
+  <Card title="State machine" icon="diagram-predecessor" href="/concepts/state-machine">
+    The difference between **armed** and **teleoperating** — and when commands actually reach your motors.
+  </Card>
+  <Card title="Controllers & buttons" icon="gamepad" href="/concepts/controllers">
+    What the operator's buttons do, and how teleop is started and stopped.
+  </Card>
+  <Card title="Robot control interface" icon="robot" href="/integration/robot-adapter">
+    The topics, messages, units, and rates your robot must support.
+  </Card>
+</CardGroup>
+
+<Tip>
+  Stuck or unsure how a concept maps to your robot? That's expected — integration is collaborative. Ping us on [Slack](https://avearobotics.com/slack) and we'll help.
 </Tip>
