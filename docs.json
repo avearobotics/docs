@@ -44,13 +44,13 @@
     "links": [
       {
         "label": "Talk to us on Slack",
-        "href": "https://avearobotics.com/slack"
+        "href": "https://avea-robotics.slack.com"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Start integration",
-      "href": "https://avearobotics.com/slack"
+      "href": "https://avea-robotics.slack.com"
     }
   },
   "contextual": {
