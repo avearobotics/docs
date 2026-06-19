@@ -33,7 +33,9 @@ flowchart LR
 | **Arm** | `trajectory_msgs/JointTrajectory` | `sensor_msgs/JointState` |
 | **Gripper** | `JointTrajectory` / `Float64` | `sensor_msgs/JointState` *(optional)* |
 | **Mobile base (locomotion)** | `geometry_msgs/Twist` | — |
-| **Camera neck** | head-pointing command | — |
+| **Camera neck** | head-pointing command | joint state *(if joint-driven)* |
+| **Dexterous hand** | finger joint command | finger joint state *(optional)* |
+| **Elevator / torso lift** | height or velocity command | — |
 | **PTZ camera** | pan / tilt / zoom command | — |
 | **Camera** | — | `sensor_msgs/CompressedImage` |
 

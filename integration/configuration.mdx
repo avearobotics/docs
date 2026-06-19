@@ -54,8 +54,8 @@ Bring these to the integration conversation and we can move fast:
   <Step title="A description of your robot">
     What it is (single arm, dual-arm, mobile manipulator, humanoid), the gripper, and the cameras.
   </Step>
-  <Step title="Your URDF">
-    The robot description file. It gives us joint names, kinematics, and limits.
+  <Step title="Your robot description (URDF)">
+    The kinematic model. It gives us joint names, kinematics, and limits. You can send it as a file, or have us read it live from your `robot_state_publisher` (via a parameter or a latched topic). If you provide it live, your publisher must be up before the runtime starts — see [the control interface](/integration/robot-adapter#before-anything-your-robot-description-urdf).
   </Step>
   <Step title="Your topic names">
     The command, state, and camera topics you've set up per the [integration contract](/integration/overview) — or ask us to suggest names.

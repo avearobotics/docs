@@ -29,6 +29,39 @@ Two loops:
 
 Both must work. The state loop is not optional: the runtime needs your state to compute commands and to confirm the robot is healthy enough to arm.
 
+## Before anything: your robot description (URDF)
+
+Sentinel needs your robot's URDF — the kinematic model — to run inverse kinematics, enforce limits, and smooth motion. Even though the runtime talks to your robot only over topics, it can't compute safe commands without knowing your robot's geometry.
+
+You can provide the description three ways. Tell us which fits your stack:
+
+| Source | What it is | When to use it |
+| --- | --- | --- |
+| **File** | A URDF/xacro file you send us | Simplest — your robot model rarely changes |
+| **Parameter** | We read `robot_description` from your `robot_state_publisher` (or similar) node | You already run a node that holds the description |
+| **Topic** | We subscribe to your latched `robot_description` topic | You publish the description the standard ROS 2 way |
+
+<Warning>
+  **If you provide the description live (topic or parameter), it must be available before the Sentinel stack comes up.** When the runtime starts, it waits a short window (about 10 seconds by default) for your description to appear, then gives up and fails to start. Make sure your `robot_state_publisher` — or whatever holds the description — is running and **latched** (publishes to late subscribers) before or as the runtime launches. A file source has no such timing requirement.
+</Warning>
+
+<Note>
+  Once resolved, the runtime republishes your description on a latched `/<your-namespace>/robot_description` topic, so the rest of the system has a single canonical copy. On a multi-arm robot, each arm has its own description — give each a distinct, namespaced topic rather than one shared `/robot_description`. We sort this out with you.
+</Note>
+
+## Topic names
+
+You choose the topic names; we write them into your config. There's no fixed requirement — just keep them clear and namespaced. A common convention:
+
+| Flow | Example topic |
+| --- | --- |
+| Arm command | `/external/arm/joint_trajectory` |
+| Arm state | `/external/arm/joint_states` |
+| Gripper command | `/external/gripper/command` |
+| Base command | `/external/base/cmd_vel` |
+
+The runtime and your controllers run on the **same `ROS_DOMAIN_ID`**, so discovery just works — no bridges or extra plumbing.
+
 ## Arm: receiving commands
 
 Subscribe to your command topic and move your joints to match.
@@ -64,7 +97,7 @@ Publish your current joint state continuously, in every mode.
 | Message type | `sensor_msgs/JointState` |
 | Direction | Your robot → runtime |
 | Units | Positions in **radians**, velocities in **rad/s**, efforts in **Nm** (if available) |
-| Rate | **Continuous and steady** — a few hundred Hz is typical; never let it stop |
+| Rate | **Continuous and steady** — match your controller's natural state rate (commonly 50–250 Hz). It must never go stale. |
 | Required | **Yes** — and it must already be flowing before the robot can arm |
 
 Populate `name`, `position`, and (recommended) `velocity`, with a real timestamp in the header.
@@ -80,7 +113,7 @@ publisher.publish(msg)
 ```
 
 <Warning>
-  **Keep state flowing.** The runtime watches for fresh joint state. If it goes stale — your publisher stops or stalls — the runtime treats it as a fault and triggers an emergency stop. Publish at a steady rate at all times, in every state, even disarmed.
+  **Keep state flowing.** The runtime watches for fresh joint state. If it goes stale for longer than a short window — half a second by default — the runtime treats it as a fault and triggers an emergency stop. Publish at a steady rate at all times, in every state, even disarmed. Don't publish slower than a couple of Hz under any circumstances; a normal controller rate (tens to hundreds of Hz) is what you want.
 </Warning>
 
 ## Gripper
@@ -113,11 +146,20 @@ If your robot drives around, subscribe to a velocity command topic.
 
 This is the standard ROS 2 velocity command. Use `linear.x` / `linear.y` and `angular.z` the way your base already expects.
 
-## Camera neck, PTZ, and other capabilities
+## More capabilities
 
-A **camera neck** (a pan/tilt head that follows the operator's gaze) and a **PTZ camera** (pan-tilt-zoom the operator aims independently) work the same way as everything on this page — your controller subscribes to a command topic over standard ROS 2 and drives the hardware. The same goes for less common capabilities like a lift, a tool changer, or an extra sensor head.
+A robot is just a set of capabilities, and the generic interface covers far more than an arm. Each one follows the same pattern as above — your controller subscribes to a command topic (and publishes state where it makes sense) over standard ROS 2.
 
-Because the right message format depends on your specific hardware, we define the exact topic and message for these **with you** rather than fixing it here. The contract is always ROS 2-native and follows the same rules: SI units, agreed QoS, act only during teleoperation.
+| Capability | What the operator drives | Typical command |
+| --- | --- | --- |
+| **Mobile base** | Driving around | `geometry_msgs/Twist` (covered above) |
+| **Camera neck** | A head that points where they look | A joint trajectory, or a target pose |
+| **Dexterous hand** | Multi-finger grasping | A finger joint command |
+| **Elevator / torso lift** | Raising and lowering | A height or velocity command |
+| **PTZ camera** | Aiming and zooming a camera | A pan/tilt/zoom velocity command |
+| **Something else** | Lift, tool changer, extra sensor head… | We define it with you |
+
+Because the right message format depends on your specific hardware (a neck might take a joint trajectory or a pose; a lift might take a position or a velocity), we settle the exact topic and message for each of these **with you** rather than fixing it here. The contract is always ROS 2-native and follows the same rules: SI units, agreed QoS, act only during teleoperation, and publish state back when a consumer needs it.
 
 <Card title="Setting up a neck, PTZ, or something else?" icon="slack" href="https://avea-robotics.slack.com" horizontal>
   Tell us what the capability does and how your hardware is driven, and we'll define the contract and add it to your config.
