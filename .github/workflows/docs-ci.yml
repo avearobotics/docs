@@ -1,0 +1,45 @@
+name: Docs CI
+
+# PR checks for the docs. Deployment + previews are handled by the Mintlify
+# GitHub app (not here) — this workflow only gates correctness before merge.
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate docs.json and navigation
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          cfg = json.load(open('docs.json'))
+          missing = []
+          def walk(pages):
+              for p in pages:
+                  if isinstance(p, str):
+                      if not (os.path.exists(p + '.mdx') or os.path.exists(p + '.md')):
+                          missing.append(p)
+                  elif isinstance(p, dict) and 'pages' in p:
+                      walk(p['pages'])
+          walk(cfg.get('navigation', {}).get('pages', []))
+          if missing:
+              print('::error::Nav references pages with no file:', missing)
+              sys.exit(1)
+          print('docs.json is valid JSON and every nav page resolves to a file.')
+          PY
+
+      - name: Check for broken links
+        run: |
+          npm i -g mint
+          mint broken-links
