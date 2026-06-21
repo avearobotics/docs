@@ -66,7 +66,7 @@ flowchart LR
     A["✋ Squeeze grip"] -->|"Start teleop"| B["Arm follows your hand"]
     B -->|"Release grip"| C["⏸ Arm holds position"]
 
-    style B fill:#dcfce7,stroke:#16A34A
+    style B fill:#d4d7ec,stroke:#383d66
 ```
 
 Let go and the arm stops following right away. This is the same thing as the [state machine](/concepts/state-machine): squeezing moves the robot to **teleop active**, releasing returns it to **armed**.

@@ -3,18 +3,46 @@
   "theme": "mint",
   "name": "Sentinel",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#383d66",
+    "light": "#929cd6",
+    "dark": "#252840"
   },
   "favicon": "/favicon.svg",
+  "appearance": {
+    "default": "system"
+  },
+  "background": {
+    "decoration": "gradient"
+  },
   "navigation": {
     "pages": [
       {
-        "group": "Getting started",
+        "group": "Get started",
         "pages": [
           "index",
-          "quickstart"
+          "quickstart",
+          "installation"
+        ]
+      },
+      {
+        "group": "Configuration",
+        "pages": [
+          "configuration/reference",
+          "configuration/examples",
+          "configuration/advanced-docker"
+        ]
+      },
+      {
+        "group": "Hardware",
+        "pages": [
+          "hardware/supported",
+          "hardware/immersive-neck"
+        ]
+      },
+      {
+        "group": "Your data",
+        "pages": [
+          "data/using-your-data"
         ]
       },
       {
@@ -26,12 +54,18 @@
         ]
       },
       {
-        "group": "Integrate your robot",
+        "group": "Integrate your own adapter",
         "pages": [
           "integration/overview",
           "integration/robot-adapter",
           "integration/camera-adapter",
           "integration/configuration"
+        ]
+      },
+      {
+        "group": "Changelog",
+        "pages": [
+          "changelog"
         ]
       }
     ]

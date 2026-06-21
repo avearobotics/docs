@@ -1,0 +1,490 @@
+---
+title: "Configuration reference"
+description: "The sections of robot.yaml you're most likely to read or tweak."
+---
+
+Config files are detailed and robot-specific. In most cases we provide a tuned `robot.yaml` for your hardware — this page explains the sections that change most often so you can read and understand it.
+
+<Note>
+  If you don't have a reference `robot.yaml` from us, reach out before starting from scratch. For anything beyond what's listed here, contact us on Slack.
+</Note>
+
+## Cameras
+
+Cameras are defined in the top-level `cameras:` section, each with an adapter plugin and encoder settings. It's a list — add or remove cameras as needed.
+
+<Tip>
+  Because of USB and device-access mechanics, each camera starts in the order listed with a 5-second delay between successive cameras. Hardware access is isolated: if one camera fails to open, the rest continue.
+</Tip>
+
+### Camera adapters
+
+**ZED cameras** (stereo vision, neck mounting):
+
+```yaml
+cameras:
+  - name: "neck"
+    adapter:
+      plugin: "sentinel_vision_adapter_zed::ZEDCamera"
+      config:
+        serial_number: "PLACEHOLDER_SERIAL"
+        resolution: "HD720"  # HD720, HD1080, HD2K, VGA, SVGA
+        fps: 60
+        depth_mode: "NONE"  # NONE, PERFORMANCE, QUALITY
+        view_mode: "SIDE_BY_SIDE"  # also supports "LEFT" and "RIGHT"
+```
+
+**RealSense cameras** (wrist/end-effector mounting):
+
+```yaml
+- name: "left_wrist"
+  adapter:
+    plugin: "sentinel_vision_adapter_realsense::RealSenseCamera"
+    config:
+      serial_number: "230322276758"
+      width: 640
+      height: 480
+      fps: 30
+      enable_color: true
+```
+
+### Encoders
+
+Encoders compress camera feeds for streaming to XR headsets. `GStreamerEncoder` is the most flexible. Encoders are a list per camera, so you can attach several to one camera — for example H.264 for streaming and raw images for storage.
+
+<Note>
+  To see video in the Quest, a `GStreamerEncoder` H.264 encoder is required.
+</Note>
+
+**Hardware-accelerated H.264/5** (NVIDIA GPU required):
+
+```yaml
+encoders:
+  - name: "streaming"
+    plugin: "sentinel_vision_encoder_gstreamer::GStreamerEncoder"
+    topic: "encoded"
+    config:
+      encoding: "h264"
+      width: 2560
+      height: 720
+      framerate: 60
+      bitrate: 20000  # kbps
+      hw_accel: "nvenc"  # NVIDIA hardware encoding
+      preset: "ll"  # Low latency
+      rate_control: "cbr"  # Constant bitrate
+      profile: "baseline"
+      gop_size: 60  # Keyframe interval
+      bframes: 0  # No B-frames for low latency
+```
+
+**Software H.264/5** (CPU-only, lower bitrate — on high-end CPUs this can beat NVENC):
+
+```yaml
+encoders:
+  - name: "streaming"
+    plugin: "sentinel_vision_encoder_gstreamer::GStreamerEncoder"
+    config:
+      encoding: "h264"
+      bitrate: 1200  # Lower for CPU encoding
+      hw_accel: "none"
+      preset: "ultrafast"  # CPU preset
+      tune: "zerolatency"
+```
+
+**Adjustable parameters:**
+- `bitrate` — higher = better quality, more bandwidth (typical: 1200–20000 kbps)
+- `framerate` — match camera fps
+- `hw_accel` — `"nvenc"` (GPU) or `"none"` (CPU)
+- `preset` — `ll` / `ultrafast` for low latency
+
+**JPEG** (CPU-based JPEG compression):
+
+```yaml
+encoders:
+  - name: "recording"
+    plugin: "sentinel_vision_encoder_jpeg::JPEGEncoder"
+    topic: "jpeg"
+    qos: "sensor_data"
+    config:
+      quality: 90  # 0-100
+```
+
+**Passthrough** (raw uncompressed images):
+
+```yaml
+encoders:
+  - name: "raw"
+    plugin: "sentinel_vision_encoder_passthrough::PassthroughEncoder"
+    topic: "raw"
+    qos: "sensor_data"
+```
+
+<Warning>
+  Passthrough encoders are likely to drop frames due to large message sizes. Not recommended — if you use it, watch `btop` or another system monitor for performance impact.
+</Warning>
+
+## Buttons
+
+Buttons are defined in the top-level `buttons:` section and map XR controller buttons to system actions. Each button can respond to different press types with either built-in handlers or custom ROS 2 service calls.
+
+```yaml
+buttons:
+  a_button:
+    single_press:
+      handler: "arm_and_start_all"  # Arms all robots and starts teleop
+    long_press:
+      handler: "go_home_all"  # Sends all robots to the home position
+```
+
+### Available button names
+
+Physical buttons from XR controllers:
+- `a_button` — A (right controller, lower)
+- `b_button` — B (right controller, upper)
+- `x_button` — X (left controller, lower)
+- `y_button` — Y (left controller, upper)
+
+Virtual buttons (from analog inputs — see [Analog inputs](#analog-inputs)): any custom name that references an `analog_inputs` key.
+
+### Press types
+
+Physical button press types:
+- `single_press` — quick tap
+- `long_press` — hold
+- `double_press` — two quick taps (uncommon)
+
+Virtual button edge types (analog-to-button):
+- `rising_edge` — analog value crosses the threshold going up
+- `falling_edge` — analog value drops below the threshold
+
+### Action types
+
+Built-in handlers (system-level actions):
+
+```yaml
+buttons:
+  a_button:
+    single_press:
+      handler: "arm_and_start_all"
+    long_press:
+      handler: "go_home_all"
+```
+
+Available handlers:
+- `arm_and_start_all` — arm all robots and begin teleoperation
+- `arm_and_start` — arm a single robot (single-robot configs)
+- `go_home_all` — move all robots to the home position
+- `go_home` — move a single robot home
+- `toggle_wrist_cam` — toggle the wrist camera on/off (requires `params.camera_name`)
+
+ROS 2 services (direct service calls):
+
+```yaml
+buttons:
+  x_button:
+    single_press:
+      service: "/sentinel/dataset/service/toggle_episode"
+```
+
+Common services:
+- `/sentinel/dataset/service/toggle_episode` — start episode / mark episode as success
+- `/sentinel/dataset/service/fail_episode` — mark episode as failure
+- `/sentinel/dataset/service/discard_episode` — delete the current recording
+- `/<namespace>/sentinel/system/service/start_teleop` — start teleop for a specific robot
+- `/<namespace>/sentinel/system/service/stop_teleop` — stop teleop for a specific robot
+
+### Handler parameters
+
+Some handlers accept optional parameters:
+
+```yaml
+buttons:
+  a_button:
+    single_press:
+      handler: "arm_and_start"
+    params:
+      arm_timeout_sec: 30.0  # Timeout for arming
+  b_button:
+    single_press:
+      handler: "toggle_wrist_cam"
+    params:
+      camera_name: "all"  # "all" or a specific camera name
+```
+
+The default button configuration works for most use cases. You typically only modify it for custom dataset-recording controls or robot-specific service calls.
+
+## Analog inputs
+
+Analog inputs map physical XR controller axes (joysticks, triggers, grips) to logical names used throughout the system. This indirection lets you route different physical inputs to different robot subsystems.
+
+### Available physical sources
+
+Joysticks (2-axis, −1.0 to 1.0): `left_joystick_x` / `left_joystick_y`, `right_joystick_x` / `right_joystick_y`
+
+Triggers (1-axis, 0.0 to 1.0): `left_trigger`, `right_trigger`
+
+Grips (1-axis, 0.0 to 1.0): `left_grip`, `right_grip`
+
+### Basic mapping
+
+```yaml
+analog_inputs:
+  right_trigger: right_gripper_control
+  left_grip: left_gripper_control
+```
+
+The logical names (right-hand side) are referenced by retargeters and other components.
+
+### Virtual buttons from analog inputs
+
+Convert an analog input into a virtual button using a threshold:
+
+```yaml
+analog_inputs:
+  left_trigger: left_trigger_control
+buttons:
+  left_trigger_control:
+    source: left_trigger_control  # references analog_inputs key
+    threshold: 0.5  # trigger when analog value > 0.5
+    rising_edge:
+      service: "/trossen_left/sentinel/system/service/start_teleop"
+    falling_edge:
+      service: "/trossen_left/sentinel/system/service/stop_teleop"
+```
+
+Useful for "squeeze to control" patterns in dual-arm setups.
+
+<Warning>
+  The logical names you define must match what your retargeters expect. For example, a gripper retargeter with `laterality: "right"` and `control_button: "trigger"` looks for `right_trigger` in `analog_inputs`. A mismatch makes controls stop working without obvious errors.
+</Warning>
+
+## Robot capabilities
+
+Each robot system defines capabilities under `systems[].capabilities[]`.
+
+### Manipulator (arm)
+
+**Joint limits** (safety bounds):
+
+```yaml
+capabilities:
+  - type: manipulator
+    chains:
+      - id: arm
+        joints: [joint_0, joint_1, ...]
+        q_min: [-3.0543, 0.0, 0.0, -1.5708, ...]  # radians
+        q_max: [3.0543, 3.1416, 2.3562, 1.5708, ...]
+        q_nominal: [0.0, 0.015, 0.007, -0.064, ...]  # neutral pose
+```
+
+**Retargeting** (XR controller → robot mapping):
+
+```yaml
+retargeting:
+  scale: 1.3  # Motion scale multiplier
+  workspace_limits:
+    min: [-0.4, -0.5, 0.1]  # meters (x, y, z)
+    max: [0.6, 0.5, 0.8]
+  laterality: "left"  # "left", "right", "both"
+  control_button: "trigger"  # "trigger" or "grip"
+  grip_threshold: 0.5
+  reanchor_on_grip: true  # Reset anchor when gripping
+```
+
+**Trajectory smoothing** (motion limits per joint):
+
+```yaml
+trajectory:
+  max_velocity: [3.375, 3.375, 3.375, 7.0, 7.0, 7.0]  # rad/s
+  max_acceleration: [8.0, 8.0, 8.0, 10.0, 10.0, 12.0]  # rad/s²
+  max_jerk: [20.0, 20.0, 20.0, 25.0, 25.0, 30.0]  # rad/s³
+```
+
+### Gripper
+
+**Control modes:**
+
+```yaml
+- type: gripper
+  retargeting:
+    mode: "toggle"  # "toggle", "analog", "binary"
+    laterality: "left"
+    control_button: "grip"  # "grip" or "trigger"
+    trigger_threshold: 0.5
+    toggle_debounce_s: 0.3
+    invert: true  # Invert open/close mapping
+```
+
+**Hardware settings:**
+
+```yaml
+hardware:
+  type: "crank_4310"  # Gripper model
+  speed: 50.0  # 0-100
+  force: 40.0  # Force setting
+  max_force: 50.0
+  kp: 20.0  # Position gain
+  kd: 0.5  # Damping gain
+```
+
+<Note>
+  Hardware configs vary by gripper and how it's implemented in the backend. In most cases the `hardware` section is set in the reference file we provide.
+</Note>
+
+## Safety
+
+Safety limits prevent dangerous motions.
+
+```yaml
+safety:
+  joint_limit_margin: 0.05  # Buffer before hard limits (radians)
+  velocity_limit_scale: 0.9  # Scale max velocities (0.0-1.0)
+  max_torque: [27.0, 27.0, 27.0, 7.0, 7.0, 7.0]  # Per-joint torque limits
+```
+
+## State machine (start / home positions)
+
+Robot poses and motion timing. See [the state machine](/concepts/state-machine) for the concepts.
+
+```yaml
+state_machine:
+  initial_state: "DISARMED"
+  joint_names: ["joint_0", "joint_1", ...]
+  home_positions: [0.0, 0.015, 0.007, ...]  # Home pose (radians)
+  start_positions: [0.0, 0.556, 0.607, ...]  # Start pose
+  motion:
+    motion_duration: 3.0  # Seconds for go_home / go_to_start
+    action_server_wait_timeout: 5.0
+```
+
+## Dataset recording
+
+Configure data collection for training. See [Using your data](/data/using-your-data) for the output format.
+
+```yaml
+dataset_recording:
+  enabled: true
+  output_dir: "datasets"  # Mounted host directory
+  storage_format: "mcap"
+  fps: 30.0
+  max_bag_size_bytes: 1073741824  # 1GB per file
+  min_free_disk_bytes: 5368709120  # Stop at 5GB free
+```
+
+## Hardware adapters
+
+Robot-specific connection settings.
+
+**Trossen Arms** (network):
+
+```yaml
+adapters:
+  - id: "arm"
+    plugin: "sentinel_adapter_trossen::TrossenAdapter"
+    serv_ip: "192.168.4.3"  # Robot IP
+    model: "wxai_v0"
+    hand: "left"  # "left" or "right"
+    timeout: 20.0
+    publish_rate_hz: 100.0
+```
+
+**YAM Arms** (CAN bus):
+
+```yaml
+adapters:
+  - id: "arm"
+    plugin: "sentinel_adapter_yam::YamAdapter"
+    connection:
+      port: "can0"  # CAN interface
+    arm_kp: [80, 80, 80, 40, 10, 10]  # Position gains
+    arm_kd: [5, 5, 5, 1.5, 1.5, 1.5]  # Damping gains
+    zero_gravity: false  # Gravity compensation
+    publish_rate_hz: 120.0
+```
+
+**Standard Bots** (ROS 2 API):
+
+```yaml
+adapters:
+  - id: "arm"
+    plugin: "sentinel_adapter_standardbots::StandardBotsAdapter"
+    bot_id: "bot_0sapi_laOIeyKzmx1LJ70nXcXL"
+    robot_url: "http://192.168.1.97:3000"
+    robot_token: "5ghg-g1raq-44-zonpg0"
+```
+
+**XLeRobot Neck** (serial servos):
+
+```yaml
+adapters:
+  - id: "neck"
+    plugin: "sentinel_adapter_xlerobot_neck::XLERobotNeckAdapter"
+    neck:
+      port: "/dev/ttyACM0"
+      baudrate: 1000000
+      motor_model: "sts3215"
+      yaw_id: 2
+      pitch_id: 1
+      smoothing_alpha: 0.7  # 0 = max smoothing, 1 = none
+```
+
+## XR video
+
+Streaming settings for VR headsets.
+
+```yaml
+xr:
+  coordinate_system: "webxr"
+  video:
+    enabled: true
+    mode: "pre_encoded"
+    cameras:
+      - {id: "neck"}  # each ID must match a camera name in the global cameras section
+      - {id: "chest"}
+      - {id: "left_wrist"}
+      - {id: "right_wrist"}
+    resolution: [1920, 1080]
+    fps: 30
+    max_latency_ms: 100
+```
+
+<Note>
+  To change the placement or size of video panels in `passthrough` mode, use the `panel_position` and `panel_size` keys. Panels sit in a 3×3 grid (`{top,middle,bottom}_{left,center,right}`); sizes are fractional values in `[0.25, 4.0]`.
+
+  ```yaml
+  xr:
+    coordinate_system: "webxr"
+    video:
+      enabled: true
+      mode: "pre_encoded"
+      cameras:
+        - {id: "neck", panel_position: "middle_left", panel_size: 2.0}
+        - {id: "chest", panel_position: "middle_right"}
+        - {id: "left_wrist", panel_position: "bottom_left"}
+        - {id: "right_wrist", panel_position: "bottom_right", panel_size: 0.25}
+      resolution: [1920, 1080]
+      fps: 30
+      max_latency_ms: 100
+  ```
+</Note>
+
+## Common tuning tasks
+
+**Reduce motion jerkiness**
+1. Lower `trajectory.max_jerk` values
+2. Increase `ik.weight_smooth`
+3. Increase retargeting `scale` (slower motions)
+
+**Adjust gripper sensitivity and force**
+1. Change `retargeting.trigger_threshold` (0.0–1.0)
+2. Toggle `retargeting.invert` for reversed behavior
+3. Adjust `hardware.force` for grip strength
+
+**Camera quality vs. bandwidth**
+1. Increase `bitrate` for better quality (more bandwidth)
+2. Lower `framerate` to reduce bandwidth
+3. Use hardware acceleration (`hw_accel: nvenc`) when available
+
+<Note>
+  For configuration not covered here, contact Avea Robotics support via Slack.
+</Note>

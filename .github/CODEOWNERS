@@ -1,0 +1,7 @@
+# Every doc change requires sign-off before it reaches the Mintlify production
+# deploy. This is what gates the auto-drafted PRs from sentinel-runtime /
+# sentinel-platform — a human reviews and approves before merge.
+#
+# Replace with your team handle (e.g. @avearobotics/docs-reviewers) if you'd
+# rather route reviews to a group.
+* @vikram-vadrevu

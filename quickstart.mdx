@@ -1,54 +1,48 @@
 ---
 title: "Quickstart"
-description: "The steps from a ROS 2 robot to driving it in VR."
+description: "The whole process, from first message to driving your robot in VR."
 ---
 
-Here's the whole process, start to finish. You set up a few ROS 2 topics on your robot, we write your config file, and we bring it up together.
+Here's the whole process for supported hardware, start to finish. You tell us about your robot, we send a tuned config and a license key, and you install and run it.
 
 ```mermaid
 flowchart TD
-    A["1 · Talk to us<br/>describe your robot"] --> B["2 · We write your config<br/>topics, joints, limits"]
-    B --> C["3 · You set up your topics<br/>commands in, state out"]
+    A["1 · Talk to us<br/>describe your robot"] --> B["2 · We send your config<br/>robot.yaml + license key"]
+    B --> C["3 · Install the runtime<br/>Docker + run_sentinel.sh"]
     C --> D["4 · Bring-up together<br/>arm, test, tune"]
     D --> E["5 · Drive it in VR 🎉"]
 
-    style A fill:#dcfce7,stroke:#16A34A
-    style E fill:#16A34A,color:#fff,stroke:#15803D
+    style A fill:#d4d7ec,stroke:#383d66
+    style E fill:#383d66,color:#fff,stroke:#252840
 ```
 
 ## Steps
 
 <Steps>
   <Step title="Tell us about your robot">
-    Message us on [Slack](https://avea-robotics.slack.com) and describe your setup: what kind of robot it is (arm, dual-arm, mobile base, humanoid), how many joints, what gripper and cameras you have, any extras like a camera neck or PTZ head, and how you run ROS 2 today.
-
-    We'll ask for your URDF and the topic names you want to use.
+    Message us on [Slack](https://avea-robotics.slack.com) and describe your setup: what kind of robot it is (arm, dual-arm, mobile base, humanoid), how many joints, what gripper and cameras you have, any extras like a camera neck or PTZ head, and how you run things today. Check [supported hardware](/hardware/supported) first.
   </Step>
 
-  <Step title="We write your config file">
-    Sentinel uses one config file that describes your robot's kinematics, motion settings, safety limits, button mappings, and topics. We write and tune it for you.
-
-    You only need to know the topics and message types it uses, which we agree on together. [More about the config file →](/integration/configuration)
+  <Step title="We send your config and license key">
+    For supported hardware we write and tune a `robot.yaml` for you — kinematics, motion, safety limits, button mappings, cameras, and adapters. You generate a license key in the [dashboard](https://dashboard.avearobotics.com/dashboard/robots). [What's in the config →](/configuration/reference)
   </Step>
 
-  <Step title="Set up your ROS 2 topics">
-    On your robot:
-
-    - **Subscribe** to a command topic and move your joints, gripper, or base to match.
-    - **Publish** your joint state so Sentinel knows where the robot is.
-    - **Publish** a compressed camera image for the operator's view.
-
-    These use standard ROS 2 messages. The details are in [Robot control interface](/integration/robot-adapter) and [Camera interface](/integration/camera-adapter).
+  <Step title="Install and run the runtime">
+    On a computer near your robot, install the prerequisites and launch the container with your config. See [Installation](/installation).
   </Step>
 
   <Step title="Bring it up together">
-    We connect the runtime to your robot and walk through it: confirm state is flowing, **arm** the robot, run a homing move, then **start teleoperation**. We tune limits and motion smoothing for your hardware as we go.
+    We walk through it with you: confirm state is flowing, **arm** the robot, run a homing move, then **start teleoperation**. We tune limits and motion smoothing for your hardware as we go.
   </Step>
 
   <Step title="Drive it and record">
-    An operator puts on the headset and drives your robot. You can record each session as training data and export it in a standard format.
+    An operator puts on the headset and drives your robot. Record each session as training data and export it in a standard format. See [Using your data](/data/using-your-data).
   </Step>
 </Steps>
+
+<Note>
+  Running hardware we don't support yet? You can integrate your own robot over standard ROS 2 — see [Integrate your own adapter](/integration/overview).
+</Note>
 
 ## Read these first
 
@@ -64,8 +58,8 @@ A few concepts make everything else easier to follow:
   <Card title="Controllers and buttons" icon="gamepad" href="/concepts/controllers">
     What the operator's buttons do, and how teleop starts and stops.
   </Card>
-  <Card title="Robot control interface" icon="robot" href="/integration/robot-adapter">
-    The topics, messages, units, and rates your robot needs.
+  <Card title="Configuration reference" icon="gears" href="/configuration/reference">
+    The sections of your `robot.yaml`.
   </Card>
 </CardGroup>
 

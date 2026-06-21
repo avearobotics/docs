@@ -28,9 +28,9 @@ flowchart LR
     RT <-->|"ROS 2 topics"| CTRL
     CTRL <--> HW
 
-    style RT fill:#dcfce7,stroke:#16A34A
-    style CTRL fill:#16A34A,color:#fff,stroke:#15803D
-    style HW fill:#16A34A,color:#fff,stroke:#15803D
+    style RT fill:#d4d7ec,stroke:#383d66
+    style CTRL fill:#383d66,color:#fff,stroke:#252840
+    style HW fill:#383d66,color:#fff,stroke:#252840
 ```
 
 The line that matters to you is between the **runtime** and **your controllers**. Everything to the left is Sentinel. Everything to the right is the robot you already build and run. The two sides talk over standard ROS 2 topics.
@@ -63,8 +63,8 @@ flowchart LR
     YOU -->|"③ joint state"| RT
     YOU -->|"④ camera image"| RT
 
-    style RT fill:#dcfce7,stroke:#16A34A
-    style YOU fill:#16A34A,color:#fff,stroke:#15803D
+    style RT fill:#d4d7ec,stroke:#383d66
+    style YOU fill:#383d66,color:#fff,stroke:#252840
 ```
 
 | Direction | What it carries | Message type |

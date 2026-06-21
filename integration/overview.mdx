@@ -3,7 +3,9 @@ title: "Integration overview"
 description: "What your robot publishes and subscribes to so it works with Sentinel."
 ---
 
-This section covers what your robot publishes and subscribes to — the topics, message types, units, and rates. You can set this up and test it on your own before we connect anything.
+This section is for **integrating a robot we don't have a prebuilt adapter for**. If your hardware is on the [supported list](/hardware/supported), you don't need any of this — we send you a config and you [install and run](/installation). Otherwise, read on: you expose a few standard ROS 2 topics and we adapt Sentinel to them.
+
+It covers what your robot publishes and subscribes to — the topics, message types, units, and rates. You can set this up and test it on your own before we connect anything.
 
 ## At a glance
 
@@ -25,7 +27,7 @@ flowchart LR
     RT -->|"Twist"| C3
     C4 -->|"CompressedImage"| RT
 
-    style RT fill:#dcfce7,stroke:#16A34A
+    style RT fill:#d4d7ec,stroke:#383d66
 ```
 
 | Capability | You subscribe to (command) | You publish (state / data) |

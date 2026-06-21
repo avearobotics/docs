@@ -14,8 +14,8 @@ flowchart LR
     CAM["📷 Your camera"] -->|"CompressedImage"| RT["⚙️ Sentinel runtime"]
     RT -->|"video"| H["🥽 Headset"]
 
-    style RT fill:#dcfce7,stroke:#16A34A
-    style CAM fill:#16A34A,color:#fff,stroke:#15803D
+    style RT fill:#d4d7ec,stroke:#383d66
+    style CAM fill:#383d66,color:#fff,stroke:#252840
 ```
 
 You publish, the runtime subscribes and streams it. Video is one-way — the runtime never sends anything back on this topic.
@@ -55,7 +55,7 @@ flowchart LR
     W["📷 Wrist cam"] --> RT
     RT --> V["🥽 Operator switches views"]
 
-    style RT fill:#dcfce7,stroke:#16A34A
+    style RT fill:#d4d7ec,stroke:#383d66
 ```
 
 Tell us how many cameras you have and what each one is for; we wire them into your config and map view-switching to a controller button if you want it. See [Controllers](/concepts/controllers).
