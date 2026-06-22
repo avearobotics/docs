@@ -1,70 +1,45 @@
 ---
-title: "Teleoperate your robot in VR"
+title: "Sentinel"
 sidebarTitle: "Introduction"
-description: "Drive your robot from a VR headset in real time, and record what you do as training data."
+description: "Teleoperate a robot from a VR headset and record the sessions as training data."
 ---
 
-Sentinel lets a person in a VR headset drive your robot in real time — reaching, grasping, looking around, and moving — and records what they do as training data. The operator sees through your robot's cameras and moves it with their hands.
+Sentinel is a container-based runtime for robot teleoperation. An operator in a VR headset drives a robot in real time — reaching, grasping, looking around, and moving — while each session is recorded as training data. The operator sees through the robot's cameras and moves it with their hands.
 
-## Two ways to run Sentinel
+## How it works
 
-<CardGroup cols={2}>
-  <Card title="Supported hardware" icon="robot" href="/installation">
-    On [supported hardware](/hardware/supported), we provide a tuned config. You install the runtime, drop in the config, and drive.
-  </Card>
-  <Card title="Your own robot" icon="diagram-project" href="/integration/overview">
-    Running something else? Integrate it over standard ROS 2 — you expose a few topics and we adapt Sentinel to it.
-  </Card>
-</CardGroup>
-
-Most customers are on the first path: you tell us about your robot, we send a `robot.yaml` and a license key, and you run it. Self-serve config creation is coming.
-
-## How it fits together
-
-Sentinel sits between the headset and your robot. The headset and cloud are ours. The robot is yours.
+The runtime runs on a computer near the robot. It converts the operator's hand motion into joint commands, drives the gripper and base, points the cameras, and streams video back to the headset. It sits between the headset and cloud and the robot's control interface.
 
 ```mermaid
 flowchart LR
     H["🥽 VR headset<br/>(operator)"] <--> C["☁️ Sentinel cloud"]
     C <--> R["⚙️ Sentinel runtime"]
-    R <-->|"robot interface"| Y["🤖 Your robot"]
+    R <-->|"robot interface"| Y["🤖 Robot"]
 
     style Y fill:#383d66,color:#fff,stroke:#252840
     style R fill:#d4d7ec,stroke:#383d66,color:#000
 ```
 
-The **runtime** runs near your robot. It turns the operator's hand motion into joint commands, sends gripper and base commands, points your camera, and streams your camera feed back to the headset.
+The whole system is driven by a single `robot.yaml` — cameras, controls, robot capabilities, safety limits, and streaming all live there. See the [configuration reference](/configuration/reference).
 
-## What we handle
+## Setup paths
 
-<CardGroup cols={2}>
-  <Card title="The runtime" icon="microchip">
-    Turns VR motion into robot commands: inverse kinematics, motion smoothing, and safety limits.
-  </Card>
-  <Card title="Your config" icon="file-pen">
-    For supported hardware we write and tune the `robot.yaml` — your adapters, joints, cameras, and limits. <a href="/configuration/reference">What's in it →</a>
-  </Card>
-  <Card title="Cloud and headset" icon="cloud">
-    Streaming, the VR app, recording, and dataset export.
-  </Card>
-  <Card title="Support" icon="headset">
-    A person to help you from first message to driving the robot.
-  </Card>
-</CardGroup>
+- **Supported hardware** runs from a ready-made config. Install the runtime, add the `robot.yaml`, and drive. See [Installation](/installation) and the [supported hardware list](/hardware/supported).
+- **Other robots** connect over standard ROS 2 — expose a few topics and map them in the config. See [Integrate your own adapter](/integration/overview).
 
-## Next
+## Next steps
 
 <CardGroup cols={2}>
   <Card title="Installation" icon="rocket" href="/installation">
     Install the runtime and drive your robot.
   </Card>
-  <Card title="Quickstart" icon="route" href="/quickstart">
-    The whole process, start to finish.
-  </Card>
   <Card title="Configuration reference" icon="gears" href="/configuration/reference">
-    Understand the sections of your `robot.yaml`.
+    Every section of `robot.yaml`.
+  </Card>
+  <Card title="Concepts" icon="diagram-project" href="/concepts/architecture">
+    How the runtime, cloud, and robot fit together.
   </Card>
   <Card title="Using your data" icon="database" href="/data/using-your-data">
-    How sessions are recorded and the message formats.
+    Recorded session layout and message formats.
   </Card>
 </CardGroup>

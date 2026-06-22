@@ -1,68 +1,57 @@
 ---
 title: "Quickstart"
-description: "The whole process, from first message to driving your robot in VR."
+description: "From a config to driving a robot in VR."
 ---
 
-Here's the whole process for supported hardware, start to finish. You tell us about your robot, we send a tuned config and a license key, and you install and run it.
+Sentinel runs as a container on a computer near the robot, driven by a single `robot.yaml`. The path from zero to driving:
 
 ```mermaid
 flowchart TD
-    A["1 · Talk to us<br/>describe your robot"] --> B["2 · We send your config<br/>robot.yaml + license key"]
-    B --> C["3 · Install the runtime<br/>Docker + run_sentinel.sh"]
-    C --> D["4 · Bring-up together<br/>arm, test, tune"]
-    D --> E["5 · Drive it in VR 🎉"]
+    A["1 · Get a config"] --> B["2 · Install the runtime"]
+    B --> C["3 · Bring it up<br/>arm, home, teleop"]
+    C --> D["4 · Drive and record 🎉"]
 
     style A fill:#d4d7ec,stroke:#383d66
-    style E fill:#383d66,color:#fff,stroke:#252840
+    style D fill:#383d66,color:#fff,stroke:#252840
 ```
 
 ## Steps
 
 <Steps>
-  <Step title="Tell us about your robot">
-    Message us on [Slack](https://avea-robotics.slack.com) and describe your setup: what kind of robot it is (arm, dual-arm, mobile base, humanoid), how many joints, what gripper and cameras you have, any extras like a camera neck or PTZ head, and how you run things today. Check [supported hardware](/hardware/supported) first.
+  <Step title="Get a config for your robot">
+    Supported hardware has ready-made configs — see [Example configs](/configuration/examples). For hardware without a prebuilt adapter, connect over ROS 2: [Integrate your own adapter](/integration/overview). The [configuration reference](/configuration/reference) explains every section.
   </Step>
 
-  <Step title="We send your config and license key">
-    For supported hardware we write and tune a `robot.yaml` for you — kinematics, motion, safety limits, button mappings, cameras, and adapters. You generate a license key in the [dashboard](https://dashboard.avearobotics.com/dashboard/robots). [What's in the config →](/configuration/reference)
+  <Step title="Install the runtime">
+    Install the prerequisites and launch the container with your config on a computer near the robot. See [Installation](/installation).
   </Step>
 
-  <Step title="Install and run the runtime">
-    On a computer near your robot, install the prerequisites and launch the container with your config. See [Installation](/installation).
+  <Step title="Bring it up">
+    Confirm joint state is flowing, **arm** the robot, run a homing move, then **start teleoperation** (the operator squeezes the grip). Tune limits and motion smoothing as needed.
   </Step>
 
-  <Step title="Bring it up together">
-    We walk through it with you: confirm state is flowing, **arm** the robot, run a homing move, then **start teleoperation**. We tune limits and motion smoothing for your hardware as we go.
-  </Step>
-
-  <Step title="Drive it and record">
-    An operator puts on the headset and drives your robot. Record each session as training data and export it in a standard format. See [Using your data](/data/using-your-data).
+  <Step title="Drive and record">
+    The operator puts on the headset and drives. Each session records to MCAP for training — see [Using your data](/data/using-your-data).
   </Step>
 </Steps>
 
-<Note>
-  Running hardware we don't support yet? You can integrate your own robot over standard ROS 2 — see [Integrate your own adapter](/integration/overview).
-</Note>
-
-## Read these first
-
-A few concepts make everything else easier to follow:
+## Concepts worth reading first
 
 <CardGroup cols={2}>
-  <Card title="How Sentinel connects" icon="diagram-project" href="/concepts/architecture">
-    The runtime, the cloud, and where your robot fits.
+  <Card title="Architecture" icon="diagram-project" href="/concepts/architecture">
+    The runtime, the cloud, and where the robot fits.
   </Card>
   <Card title="State machine" icon="diagram-predecessor" href="/concepts/state-machine">
-    The difference between **armed** and **teleoperating**, and when commands reach your motors.
+    **Armed** vs **teleoperating**, and when commands reach the motors.
   </Card>
   <Card title="Controllers and buttons" icon="gamepad" href="/concepts/controllers">
     What the operator's buttons do, and how teleop starts and stops.
   </Card>
   <Card title="Configuration reference" icon="gears" href="/configuration/reference">
-    The sections of your `robot.yaml`.
+    Every section of `robot.yaml`.
   </Card>
 </CardGroup>
 
 <Tip>
-  Not sure how something maps to your robot? Ask us on [Slack](https://avea-robotics.slack.com) — we set this up with you.
+  Stuck mapping something to your robot? Reach the team on [Slack](https://avea-robotics.slack.com).
 </Tip>

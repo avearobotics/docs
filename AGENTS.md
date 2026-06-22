@@ -33,6 +33,13 @@ Call out gotchas and safety-critical notes inline with callouts (`<Warning>`,
 `<Note>`, `<Tip>`). Don't pad with marketing language; assume a competent robotics
 engineer reading to get something working.
 
+Write **normal technical docs**, not a concierge pitch. Describe the system and
+how to use it. Avoid the "what we provide / what you bring" bifurcation and the
+first-person-plural sales voice ("we write your config", "we handle X"). Use
+"you" only for instructions ("install the runtime"); state facts neutrally
+("supported hardware ships with a ready-made config") instead of framing
+everything as an Avea-does-it-for-you relationship.
+
 ## Content boundaries
 
 {/* Define what should and shouldn't be documented */}
