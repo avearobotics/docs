@@ -1,0 +1,719 @@
+# ============================================================================
+# Generic / Bimanual Trossen + 3 RealSense (overhead + per-arm wrist)
+# ============================================================================
+# Two independent Trossen WXAI arms with three RealSense cameras
+# (overhead + per-arm wrist). No neck. Fill in the <PLACEHOLDER> fields
+# below before launch:
+#   - system.license_key
+#   - cameras[*].adapter.config.serial_number      (3 RealSense serials)
+#   - systems[arm].adapters[arm].serv_ip           (Trossen IP per arm)
+#
+# Topic structure:
+#   Global:    /sentinel/xr/*, /sentinel/events, /sentinel/telemetry
+#   Cameras:   /sentinel/vision/output/{overhead,left_wrist,right_wrist}/encoded
+#   Left arm:  /trossen_left/sentinel/*
+#   Right arm: /trossen_right/sentinel/*
+
+# ============================================================================
+# System Configuration
+# ============================================================================
+system:
+  license_key: "<LICENSE_KEY>"
+  enable_dataset_recording: true
+
+# ============================================================================
+# Global Button Listener Configuration
+# ============================================================================
+button_listener:
+  debounce_duration: 0.5
+
+# ============================================================================
+# XR Configuration (GLOBAL - shared across all robots)
+# ============================================================================
+xr:
+  coordinate_system: "webxr"
+
+  video:
+    enabled: true
+    mode: "pre_encoded"
+    cameras:
+      - {id: "overhead"}
+      - {id: "right_wrist"}
+      - {id: "left_wrist"}
+    max_latency_ms: 100
+
+# ============================================================================
+# Analog Input Mapping (GLOBAL)
+# ============================================================================
+analog_inputs:
+  left_joystick_y: left_velocity_scaling
+  right_joystick_y: right_velocity_scaling
+  left_grip:       left_grip_control
+  right_grip:      right_grip_control
+  left_trigger:    left_gripper_control
+  right_trigger:   right_gripper_control
+
+# ============================================================================
+# Button Configuration (GLOBAL)
+# ============================================================================
+buttons:
+  left_grip_control:
+    source: left_grip_control
+    threshold: 0.5
+    rising_edge:
+      service: "/trossen_left/sentinel/system/service/start_teleop"
+    falling_edge:
+      service: "/trossen_left/sentinel/system/service/stop_teleop"
+
+  right_grip_control:
+    source: right_grip_control
+    threshold: 0.5
+    rising_edge:
+      service: "/trossen_right/sentinel/system/service/start_teleop"
+    falling_edge:
+      service: "/trossen_right/sentinel/system/service/stop_teleop"
+
+  a_button:
+    single_press:
+      handler: "arm_and_start_all"
+      params:
+        arm_timeout_sec: 30.0
+    long_press:
+      handler: "go_home_all"
+
+  b_button:
+    single_press:
+      handler: "disarm_all"
+
+  x_button:
+    single_press:
+      service: "/sentinel/dataset/service/toggle_episode"
+
+  y_button:
+    single_press:
+      service: "/sentinel/dataset/service/fail_episode"
+
+# ============================================================================
+# Cameras Configuration (GLOBAL - 3 x RealSense: overhead + 2 wrist)
+# ============================================================================
+cameras:
+  - name: "overhead"
+    adapter:
+      plugin: "sentinel_vision_adapter_realsense::RealSenseCamera"
+      config:
+        serial_number: "<OVERHEAD_REALSENSE_SERIAL>"
+        width: 640
+        height: 480
+        fps: 30
+        enable_depth: false
+        enable_color: true
+        align_to_color: false
+    encoders:
+      - name: "streaming"
+        plugin: "sentinel_vision_encoder_gstreamer::GStreamerEncoder"
+        topic: "encoded"
+        qos: "streaming"
+        config:
+          encoding: "h264"
+          width: 640
+          height: 480
+          framerate: 30
+          bitrate: 4000
+          hw_accel: "none"
+          preset: "veryfast"
+          tune: "zerolatency"
+          rate_control: "cbr"
+          profile: "main"
+          gop_size: 2
+          bframes: 0
+
+  - name: "left_wrist"
+    adapter:
+      plugin: "sentinel_vision_adapter_realsense::RealSenseCamera"
+      config:
+        serial_number: "<LEFT_WRIST_REALSENSE_SERIAL>"
+        width: 640
+        height: 480
+        fps: 30
+        enable_depth: false
+        enable_color: true
+        align_to_color: false
+    encoders:
+      - name: "streaming"
+        plugin: "sentinel_vision_encoder_gstreamer::GStreamerEncoder"
+        topic: "encoded"
+        qos: "streaming"
+        config:
+          encoding: "h264"
+          width: 640
+          height: 480
+          framerate: 30
+          bitrate: 4000
+          hw_accel: "none"
+          preset: "veryfast"
+          tune: "zerolatency"
+          rate_control: "cbr"
+          profile: "main"
+          gop_size: 2
+          bframes: 0
+
+  - name: "right_wrist"
+    adapter:
+      plugin: "sentinel_vision_adapter_realsense::RealSenseCamera"
+      config:
+        serial_number: "<RIGHT_WRIST_REALSENSE_SERIAL>"
+        width: 640
+        height: 480
+        fps: 30
+        enable_depth: false
+        enable_color: true
+        align_to_color: false
+    encoders:
+      - name: "streaming"
+        plugin: "sentinel_vision_encoder_gstreamer::GStreamerEncoder"
+        topic: "encoded"
+        qos: "streaming"
+        config:
+          encoding: "h264"
+          width: 640
+          height: 480
+          framerate: 30
+          bitrate: 4000
+          hw_accel: "none"
+          preset: "veryfast"
+          tune: "zerolatency"
+          rate_control: "cbr"
+          profile: "main"
+          gop_size: 2
+          bframes: 0
+
+# ============================================================================
+# Dataset Recording Configuration (GLOBAL)
+# ============================================================================
+dataset_recording:
+  enabled: true
+  output_dir: "/datasets"
+  storage_format: "mcap"
+  max_bag_size_bytes: 1073741824
+  min_free_disk_bytes: 5368709120
+  fps: 30.0
+
+  topics:
+    # Peripheral
+    - /tf
+    - /tf_static
+    - /sentinel/events
+    - /sentinel/xr/input/xr_input
+    - /trossen_left/sentinel/system/state/current
+    - /trossen_right/sentinel/system/state/current
+
+    # State measurements
+    - /trossen_left/sentinel/robot/state/joint_states/measured
+    - /trossen_right/sentinel/robot/state/joint_states/measured
+    - /trossen_left/sentinel/robot/state/gripper_states/measured
+    - /trossen_right/sentinel/robot/state/gripper_states/measured
+
+    # Commands
+    - /trossen_left/sentinel/control/commands/joint_safe
+    - /trossen_right/sentinel/control/commands/joint_safe
+    - /trossen_left/sentinel/control/commands/gripper
+    - /trossen_right/sentinel/control/commands/gripper
+
+    # Video (encoded H.264)
+    - /sentinel/vision/output/overhead/encoded
+    - /sentinel/vision/output/left_wrist/encoded
+    - /sentinel/vision/output/right_wrist/encoded
+
+# ============================================================================
+# Robots Configuration
+# ============================================================================
+systems:
+  # --------------------------------------------------------------------------
+  # Left arm
+  # --------------------------------------------------------------------------
+  - name: "Trossen Left"
+    namespace: "trossen_left"
+    serial: "TROSSEN_LEFT"
+
+    adapters:
+      - id: "arm"
+        plugin: "sentinel_adapter_trossen::TrossenAdapter"
+        urdf: "package://trossen_arm_description/urdf/wxai_v0.urdf"
+
+        publish_rate_hz: 100.0
+        command_timeout_s: 0.5
+
+        serv_ip: "<LEFT_ARM_IP>"
+        model: "wxai_v0"
+        end_effector: "wxai_v0_base"
+        hand: "left"
+        timeout: 20.0
+
+    capabilities:
+      - type: manipulator
+        id: left_arm
+        adapter_id: "arm"
+        enabled: true
+
+        posturing:
+          enabled: false
+          mode: "simple"
+          weight: 0.0
+
+        chains:
+          - id: arm
+            base_link: "base_link"
+            ee_link: "link_6"
+            joints:
+              - joint_0
+              - joint_1
+              - joint_2
+              - joint_3
+              - joint_4
+              - joint_5
+            q_min: [-3.0543, 0.0,    0.0,    -1.5708, -1.5708, -3.1416]
+            q_max: [ 3.0543, 3.1416, 2.3562,  1.5708,  1.5708,  3.1416]
+            q_nominal: [-0.003242542153047978, 0.015068284122987663, 0.007438773174639479, -0.06466010528725441, 0.003242542153047978, 0.022697795071335847]
+            segments:
+              upper_arm: 0.25
+              forearm: 0.25
+
+        retargeting:
+          mode: "simple"
+          enable_posture: false
+          scale: 1.5
+          workspace_limits:
+            min: [-0.4, -0.5, 0.1]
+            max: [0.6, 0.5, 0.8]
+          tracking_frames:
+            primary: "controller_left"
+          laterality: "left"
+          control_button: "grip"
+          coordinate_transform: [0, 0, 1, -1, 0, 0, 0, 1, 0]
+          grip_threshold: 0.5
+          reanchor_on_grip: true
+
+          motion_pipeline:
+            filter:
+              notch_hz: 7.3
+              notch_q: 8.0
+              lowpass_hz: 9.0
+            speed_gate:
+              v_low: 0.015
+              v_high: 0.050
+
+        haptics:
+          enabled: true
+          min_event_m: 0.04
+          max_event_m: 0.1
+          time_constant_s: 0.2
+          event_rate_hz: 30.0
+          direction_axis_sign: [1, 1, -1]
+
+        ik:
+          solver_mode: "simple"
+          solver: "casadi"
+          max_iterations: 50
+          tolerance: 0.001
+          timeout_ms: 100.0
+          enable_posture: false
+          weight_translational: 100.0
+          weight_rotational: 50.0
+          weight_regularization: 0.1
+          weight_smooth: 0.1
+          weight_manipulability: 0.0
+
+        trajectory:
+          control_mode: "open_loop"
+          max_velocity:     [3.375, 3.375, 3.375, 7.0, 7.0, 7.0]
+          max_acceleration: [8.0, 8.0, 8.0, 10.0, 10.0, 12.0]
+          max_jerk:         [20.0, 20.0, 20.0, 25.0, 25.0, 30.0]
+
+        planning:
+          interpolation_points: 100
+          execution_rate_hz: 60.0
+          planning_time_limit: 10.0
+          enable_viz: true
+          joints_to_lock: []
+
+      - type: gripper
+        id: gripper
+        adapter_id: "arm"
+        enabled: true
+        parent_chain: arm
+
+        chains:
+          - id: gripper
+            joints:
+              - left_carriage_joint
+              - right_carriage_joint
+
+        hardware:
+          min_position: -0.004
+          max_position: 0.030
+
+        retargeting:
+          mode: "toggle"
+          laterality: "left"
+          control_button: "trigger"
+          trigger_threshold: 0.25
+          close_threshold: 0.7
+          open_threshold: 0.3
+          toggle_debounce_s: 0.15
+          invert: true
+
+    safety:
+      joint_limit_margin: 0.05
+      velocity_limit_scale: 0.9
+      emergency_stop_enabled: true
+      max_torque: [27.0, 27.0, 27.0, 7.0, 7.0, 7.0]
+
+    state_machine:
+      initial_state: "DISARMED"
+      joint_names: ["joint_0", "joint_1", "joint_2", "joint_3", "joint_4", "joint_5"]
+      home_positions: [-0.003242542153047978, 0.015068284122987663, 0.007438773174639479, -0.06466010528725441, 0.003242542153047978, 0.022697795071335847]
+      start_positions: [-0.003242542153047978, 0.5556191348134583, 0.6071183337148085, -0.09899290455481768, 0.0005722133211261138, 0.02193484397650103]
+      motion:
+        action_server_wait_timeout: 5.0
+        goal_acceptance_timeout: 2.0
+        motion_duration: 3.0
+      calibration_timeout_s: 10.0
+      skeleton_validation:
+        enabled: true
+        min_confidence: 0.5
+        require_full_body: false
+        min_bone_length_m: 0.05
+
+    orchestration:
+      on_arm:
+        - node: "robot_adapter_"
+          transition: "configure"
+          timeout: 30.0   # covers 20s Trossen connection timeout
+        - node: "trajectory_smoother_"
+          transition: "configure"
+          timeout: 10.0
+        - node: "safety_"
+          transition: "configure"
+          timeout: 10.0
+        - node: "arm_retargeter_"
+          transition: "configure"
+          timeout: 10.0
+        - node: "gripper_retargeter_"
+          transition: "configure"
+          timeout: 10.0
+        - node: "ik_solver_"
+          transition: "configure"
+          timeout: 10.0
+        - node: "ompl_joint_planner_"
+          transition: "configure"
+          timeout: 10.0
+        - node: "haptic_feedback_"
+          transition: "configure"
+          timeout: 10.0
+        - node: "robot_adapter_"
+          transition: "activate"
+          timeout: 5.0
+        - node: "safety_"
+          transition: "activate"
+          timeout: 5.0
+        - node: "trajectory_smoother_"
+          transition: "activate"
+          timeout: 5.0
+        - node: "haptic_feedback_"
+          transition: "activate"
+          timeout: 5.0
+        - node: "gripper_retargeter_"
+          transition: "activate"
+          timeout: 5.0
+
+      on_start_teleop:
+        - node: "ik_solver_"
+          transition: "activate"
+          timeout: 5.0
+        - node: "arm_retargeter_"
+          transition: "activate"
+          timeout: 5.0
+
+      on_stop_teleop:
+        - node: "arm_retargeter_"
+          transition: "deactivate"
+          timeout: 5.0
+        - node: "ik_solver_"
+          transition: "deactivate"
+          timeout: 5.0
+
+      on_go_home:
+        - node: "ompl_joint_planner_"
+          transition: "activate"
+          timeout: 5.0
+
+      on_go_home_complete:
+        - node: "ompl_joint_planner_"
+          transition: "deactivate"
+          timeout: 5.0
+
+      on_go_to_start:
+        - node: "ompl_joint_planner_"
+          transition: "activate"
+          timeout: 5.0
+
+      on_go_to_start_complete:
+        - node: "ompl_joint_planner_"
+          transition: "deactivate"
+          timeout: 5.0
+
+    visualization:
+      enable_markers: true
+      publish_xr_to_tf: true
+      base_frame_offset:
+        x: 0.0
+        y: 0.2286
+        z: 0.0
+        roll: 0.0
+        pitch: 0.0
+        yaw: 0.0
+
+  # --------------------------------------------------------------------------
+  # Right arm
+  # --------------------------------------------------------------------------
+  - name: "Trossen Right"
+    namespace: "trossen_right"
+    serial: "TROSSEN_RIGHT"
+
+    adapters:
+      - id: "arm"
+        plugin: "sentinel_adapter_trossen::TrossenAdapter"
+        urdf: "package://trossen_arm_description/urdf/wxai_v0.urdf"
+
+        publish_rate_hz: 100.0
+        command_timeout_s: 0.5
+
+        serv_ip: "<RIGHT_ARM_IP>"
+        model: "wxai_v0"
+        end_effector: "wxai_v0_base"
+        hand: "right"
+        timeout: 20.0
+
+    capabilities:
+      - type: manipulator
+        id: right_arm
+        adapter_id: "arm"
+        enabled: true
+
+        posturing:
+          enabled: false
+          mode: "simple"
+          weight: 0.0
+
+        chains:
+          - id: arm
+            base_link: "base_link"
+            ee_link: "link_6"
+            joints:
+              - joint_0
+              - joint_1
+              - joint_2
+              - joint_3
+              - joint_4
+              - joint_5
+            q_min: [-3.0543, 0.0,    0.0,    -1.5708, -1.5708, -3.1416]
+            q_max: [ 3.0543, 3.1416, 2.3562,  1.5708,  1.5708,  3.1416]
+            q_nominal: [-0.003242542153047978, 0.015068284122987663, 0.007438773174639479, -0.06466010528725441, 0.003242542153047978, 0.022697795071335847]
+            segments:
+              upper_arm: 0.25
+              forearm: 0.25
+
+        retargeting:
+          mode: "simple"
+          enable_posture: false
+          scale: 1.5
+          workspace_limits:
+            min: [-0.4, -0.5, 0.1]
+            max: [0.6, 0.5, 0.8]
+          tracking_frames:
+            primary: "controller_right"
+          laterality: "right"
+          control_button: "grip"
+          coordinate_transform: [0, 0, 1, -1, 0, 0, 0, 1, 0]
+          grip_threshold: 0.5
+          reanchor_on_grip: true
+
+          motion_pipeline:
+            filter:
+              notch_hz: 7.3
+              notch_q: 8.0
+              lowpass_hz: 9.0
+            speed_gate:
+              v_low: 0.015
+              v_high: 0.050
+
+        haptics:
+          enabled: true
+          min_event_m: 0.04
+          max_event_m: 0.1
+          time_constant_s: 0.2
+          event_rate_hz: 30.0
+          direction_axis_sign: [1, 1, -1]
+
+        ik:
+          solver_mode: "simple"
+          solver: "casadi"
+          max_iterations: 50
+          tolerance: 0.001
+          timeout_ms: 100.0
+          enable_posture: false
+          weight_translational: 100.0
+          weight_rotational: 50.0
+          weight_regularization: 0.1
+          weight_smooth: 0.1
+          weight_manipulability: 0.0
+
+        trajectory:
+          control_mode: "open_loop"
+          max_velocity:     [3.375, 3.375, 3.375, 7.0, 7.0, 7.0]
+          max_acceleration: [8.0, 8.0, 8.0, 10.0, 10.0, 12.0]
+          max_jerk:         [20.0, 20.0, 20.0, 25.0, 25.0, 30.0]
+
+        planning:
+          interpolation_points: 100
+          execution_rate_hz: 60.0
+          planning_time_limit: 10.0
+          enable_viz: true
+          joints_to_lock: []
+
+      - type: gripper
+        id: gripper
+        adapter_id: "arm"
+        enabled: true
+        parent_chain: arm
+
+        chains:
+          - id: gripper
+            joints:
+              - left_carriage_joint
+              - right_carriage_joint
+
+        hardware:
+          min_position: -0.004
+          max_position: 0.030
+
+        retargeting:
+          mode: "toggle"
+          laterality: "right"
+          control_button: "trigger"
+          trigger_threshold: 0.25
+          close_threshold: 0.7
+          open_threshold: 0.3
+          toggle_debounce_s: 0.15
+          invert: true
+
+    safety:
+      joint_limit_margin: 0.05
+      velocity_limit_scale: 0.9
+      emergency_stop_enabled: true
+      max_torque: [27.0, 27.0, 27.0, 7.0, 7.0, 7.0]
+
+    state_machine:
+      initial_state: "DISARMED"
+      joint_names: ["joint_0", "joint_1", "joint_2", "joint_3", "joint_4", "joint_5"]
+      home_positions: [-0.003242542153047978, 0.015068284122987663, 0.007438773174639479, -0.06466010528725441, 0.003242542153047978, 0.022697795071335847]
+      start_positions: [-0.003242542153047978, 0.5556191348134583, 0.6071183337148085, -0.09899290455481768, 0.0005722133211261138, 0.02193484397650103]
+      motion:
+        action_server_wait_timeout: 5.0
+        goal_acceptance_timeout: 2.0
+        motion_duration: 3.0
+      calibration_timeout_s: 10.0
+      skeleton_validation:
+        enabled: true
+        min_confidence: 0.5
+        require_full_body: false
+        min_bone_length_m: 0.05
+
+    orchestration:
+      on_arm:
+        - node: "robot_adapter_"
+          transition: "configure"
+          timeout: 30.0
+        - node: "trajectory_smoother_"
+          transition: "configure"
+          timeout: 10.0
+        - node: "safety_"
+          transition: "configure"
+          timeout: 10.0
+        - node: "arm_retargeter_"
+          transition: "configure"
+          timeout: 10.0
+        - node: "gripper_retargeter_"
+          transition: "configure"
+          timeout: 10.0
+        - node: "ik_solver_"
+          transition: "configure"
+          timeout: 10.0
+        - node: "ompl_joint_planner_"
+          transition: "configure"
+          timeout: 10.0
+        - node: "haptic_feedback_"
+          transition: "configure"
+          timeout: 10.0
+        - node: "robot_adapter_"
+          transition: "activate"
+          timeout: 5.0
+        - node: "safety_"
+          transition: "activate"
+          timeout: 5.0
+        - node: "trajectory_smoother_"
+          transition: "activate"
+          timeout: 5.0
+        - node: "haptic_feedback_"
+          transition: "activate"
+          timeout: 5.0
+        - node: "gripper_retargeter_"
+          transition: "activate"
+          timeout: 5.0
+
+      on_start_teleop:
+        - node: "ik_solver_"
+          transition: "activate"
+          timeout: 5.0
+        - node: "arm_retargeter_"
+          transition: "activate"
+          timeout: 5.0
+
+      on_stop_teleop:
+        - node: "arm_retargeter_"
+          transition: "deactivate"
+          timeout: 5.0
+        - node: "ik_solver_"
+          transition: "deactivate"
+          timeout: 5.0
+
+      on_go_home:
+        - node: "ompl_joint_planner_"
+          transition: "activate"
+          timeout: 5.0
+
+      on_go_home_complete:
+        - node: "ompl_joint_planner_"
+          transition: "deactivate"
+          timeout: 5.0
+
+      on_go_to_start:
+        - node: "ompl_joint_planner_"
+          transition: "activate"
+          timeout: 5.0
+
+      on_go_to_start_complete:
+        - node: "ompl_joint_planner_"
+          transition: "deactivate"
+          timeout: 5.0
+
+    visualization:
+      enable_markers: true
+      publish_xr_to_tf: true
+      base_frame_offset:
+        x: 0.0
+        y: -0.2286
+        z: 0.0
+        roll: 0.0
+        pitch: 0.0
+        yaw: 0.0

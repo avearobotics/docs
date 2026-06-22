@@ -1,40 +1,40 @@
 ---
 title: "Example configs"
-description: "Reference robot.yaml configs for common hardware setups."
+description: "Download known-good robot.yaml configs for common hardware setups."
 ---
 
-These are known-good starting configs for common setups. We provide the actual `.yaml` files — ask us on [Slack](https://avea-robotics.slack.com) for the ones that match your hardware.
+These are known-good starting configs for common bimanual setups. Download the one that matches your hardware, then fill in the placeholders before launch.
 
 <Note>
-  The reference `.yaml` files referenced below are distributed by Avea (they were attached in our internal docs). They aren't checked into this site yet — request the file for your setup and we'll send it.
+  Each file has placeholders to replace: `system.license_key` (`<LICENSE_KEY>`),
+  the camera `serial_number` fields, and the per-arm CAN `connection.port`
+  (YAM) where applicable. Generate a license key in the
+  [dashboard](https://dashboard.avearobotics.com/dashboard/robots).
 </Note>
 
 ## Bimanual YAM
 
-- 2× RealSense D405 wrist cameras and 1× D405 overhead (easily swapped for D455 or D435i)
-- Works out of the box with the `MolmoAct2-Bimanual-Yam` checkpoint configuration
+2× RealSense D405 wrist cameras + 1× D405 overhead (swappable for D455/D435i). Works out of the box with the `MolmoAct2-Bimanual-Yam` checkpoint.
 
-**Reference file:** `yam_dual_3realsense.yaml`
+<a href="/configs/yam_dual_3realsense.yaml" download>⬇ Download `yam_dual_3realsense.yaml`</a>
 
 ## Bimanual YAM with immersive neck
 
-- 2× RealSense D405 wrist cameras and 1× ZED 2 Mini
-- Uses `NVENC`, available only on `amd64-cu13` containers
+2× RealSense D405 wrist cameras + 1× ZED 2 Mini neck. Uses `NVENC` — `amd64-cu13` containers only.
 
-**Reference file:** `yam_dual_zed_immersive.yaml`
+<a href="/configs/yam_dual_zed_immersive.yaml" download>⬇ Download `yam_dual_zed_immersive.yaml`</a>
 
 ## Bimanual Trossen WXAI
 
-- 2× RealSense D405 wrist cameras and 1× D405 overhead (easily swapped for D455 or D435i)
+2× RealSense D405 wrist cameras + 1× D405 overhead (swappable for D455/D435i).
 
-**Reference file:** `trossen_dual_3realsense.yaml`
+<a href="/configs/trossen_dual_3realsense.yaml" download>⬇ Download `trossen_dual_3realsense.yaml`</a>
 
 ## Bimanual Trossen WXAI with immersive neck
 
-- 2× RealSense D405 wrist cameras and 1× ZED 2 Mini
-- Uses `NVENC`, available only on `amd64-cu13` containers
+2× RealSense D405 wrist cameras + 1× ZED 2 Mini neck. Uses `NVENC` — `amd64-cu13` containers only.
 
-**Reference file:** `trossen_dual_zed_immersive.yaml`
+<a href="/configs/trossen_dual_zed_immersive.yaml" download>⬇ Download `trossen_dual_zed_immersive.yaml`</a>
 
 <Card title="Building an immersive neck?" icon="screwdriver-wrench" href="/hardware/immersive-neck" horizontal>
   Print, wire, and calibrate the ZED Mini neck.

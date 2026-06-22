@@ -131,10 +131,22 @@ Buttons are defined in the top-level `buttons:` section and map XR controller bu
 buttons:
   a_button:
     single_press:
-      handler: "arm_and_start_all"  # Arms all robots and starts teleop
+      handler: "arm_and_start_all"  # Arm all robots and move to the start pose
     long_press:
-      handler: "go_home_all"  # Sends all robots to the home position
+      handler: "go_home_all"        # Send all robots to the home pose
+  b_button:
+    single_press:
+      handler: "disarm_all"         # Disarm all robots
+  x_button:
+    single_press:
+      service: "/sentinel/dataset/service/toggle_episode"  # Start / mark success
+  y_button:
+    single_press:
+      service: "/sentinel/dataset/service/fail_episode"    # Mark episode failed
 ```
+
+Teleop itself starts and stops on the **grip** (a virtual button from
+`analog_inputs`), not a face button — see [Analog inputs](#analog-inputs).
 
 ### Available button names
 
@@ -168,14 +180,18 @@ buttons:
       handler: "arm_and_start_all"
     long_press:
       handler: "go_home_all"
+  b_button:
+    single_press:
+      handler: "disarm_all"
 ```
 
 Available handlers:
-- `arm_and_start_all` — arm all robots and begin teleoperation
-- `arm_and_start` — arm a single robot (single-robot configs)
-- `go_home_all` — move all robots to the home position
-- `go_home` — move a single robot home
-- `toggle_wrist_cam` — toggle the wrist camera on/off (requires `params.camera_name`)
+- `arm_and_start_all` — arm all robots and move them to the start pose
+- `arm_and_start` — same, for a single robot (single-robot configs)
+- `go_to_start_all` / `go_to_start` — move to the start pose (without arming)
+- `go_home_all` / `go_home` — move to the home pose
+- `disarm_all` / `disarm` — disarm
+- `cycle_wrist_cam` — cycle the active wrist camera (requires `params.camera_name`)
 
 ROS 2 services (direct service calls):
 
@@ -201,14 +217,9 @@ Some handlers accept optional parameters:
 buttons:
   a_button:
     single_press:
-      handler: "arm_and_start"
+      handler: "arm_and_start_all"
     params:
-      arm_timeout_sec: 30.0  # Timeout for arming
-  b_button:
-    single_press:
-      handler: "toggle_wrist_cam"
-    params:
-      camera_name: "all"  # "all" or a specific camera name
+      arm_timeout_sec: 30.0  # Timeout for the arming step
 ```
 
 The default button configuration works for most use cases. You typically only modify it for custom dataset-recording controls or robot-specific service calls.
