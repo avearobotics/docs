@@ -45,6 +45,30 @@ publisher.publish(msg)
   Most ROS 2 cameras can publish a `CompressedImage` already (often a `.../compressed` topic). If yours does, integration is just telling us the topic name. If it only publishes raw images, a standard ROS 2 compression node gets you there.
 </Note>
 
+## Or let Sentinel open the camera
+
+If the camera is plugged into the Sentinel computer (USB / UVC, Intel RealSense, or
+ZED), you don't have to publish anything yourself — **Sentinel can open the camera
+directly, capture and encode it, and publish the video topics for you.** You just
+tell us the camera in your config; we handle capture and encoding.
+
+|  | Publish it yourself | Let Sentinel open it |
+| --- | --- | --- |
+| Your camera | already on ROS 2 as `CompressedImage` | plugged into the Sentinel computer (USB / RealSense / ZED) |
+| You do | point us at the topic | tell us the camera — nothing to run |
+| To the headset | runtime forwards your topic | runtime captures, encodes, and publishes it |
+
+In this mode Sentinel outputs encoded video on
+`/sentinel/vision/output/{camera_name}/encoded` (`sentinel_msgs/EncodedImage`,
+H.264/H.265) — the same topics it records. The full message definition is in
+[Using your data](/data/using-your-data#encodedimage).
+
+<Note>
+  Tell us which cameras are attached and what each one is for; we add them to the
+  `cameras:` section of your `robot.yaml` and Sentinel brings them up. Either path
+  works per-camera — you can publish some feeds yourself and let Sentinel open others.
+</Note>
+
 ## Multiple cameras
 
 You can stream more than one camera — for example a head view and a wrist view. Each camera is its own topic and shows up as a separate view the operator can switch between.
