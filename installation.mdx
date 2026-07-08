@@ -6,7 +6,7 @@ description: "Install the Sentinel runtime, add your config, and drive your robo
 The Sentinel runtime ships as a container you run on a computer near your robot. In most cases we provide a tuned `robot.yaml` config for your hardware — you add it, run the launcher, and drive.
 
 <Note>
-  **Latest version:** `0.9.0`. Versions below `0.7.0` are no longer supported and cannot be used. `0.7.0` introduced major breaking changes — configs made for earlier versions must be replaced. Contact us to update your config.
+  **Latest version:** `0.11.0`. Versions below `0.7.0` are no longer supported and cannot be used. `0.7.0` introduced major breaking changes — configs made for earlier versions must be replaced. Contact us to update your config.
 </Note>
 
 ## Overview
@@ -180,13 +180,13 @@ Sentinel is a modular, container-based runtime for robot teleoperation. It suppo
 
     ```shell
     cd ~/sentinel
-    ./run_sentinel.sh ./robot.yaml 0.9.0-amd64-cu13
+    ./run_sentinel.sh ./robot.yaml 0.11.0-amd64-cu13
     ```
 
     Optionally include a neck calibration file (absolute path required):
 
     ```shell
-    ./run_sentinel.sh ./robot.yaml 0.9.0-amd64-cu13 /absolute/path/to/neck_calibration.json
+    ./run_sentinel.sh ./robot.yaml 0.11.0-amd64-cu13 /absolute/path/to/neck_calibration.json
     ```
 
     Once it's running, open [Sentinel XR Teleoperation](http://app.avearobotics.com) on your Meta Quest 3 / 3S to control your robot.
