@@ -4,18 +4,35 @@ description: "Sentinel runtime release notes."
 ---
 
 <Update label="0.11.0" description="July 7, 2026">
-  - Native H.264 support for x264 and NVENC.
-  - Custom congestion control.
-  - Support for humanoid torso control.
-  - Network diagnostics on the operator dashboard.
-  - Dataset labeling and task selection for operators.
-  - Advanced logging.
-  - API to transition robot states.
-  - OpenArm support.
-  - AlmondBot support.
-  - Realman bimanual support.
-  - ROS 2 generic adapter.
+  - Native H.264 encoders — x264 and NVENC (discrete GPU and Jetson), with correct profile/level signaling.
+  - New WebRTC transport with custom congestion control for smoother video under changing network conditions.
+  - Torso recentering safety measure — the waist recenters slowly and recentering is gated so it can't fire during active teleop.
+  - Dataset labeling and task selection for operators, plus more reliable episode reporting.
+  - Advanced logging — runtime logs and telemetry ship to our cloud for faster support and diagnostics.
+  - API to transition robot states remotely (arm, disarm, e-stop).
+  - OpenArm (Enactic) support.
+  - Anvil OpenArm support.
+  - Almond Axol support.
+  - RealMan RMC-DA (dual-arm wheeled) support.
   - Bug fixes.
+</Update>
+
+<Update label="0.10.0" description="June 24, 2026">
+  - Humanoid torso control — joystick-driven waist yaw and tilt.
+  - Generic ROS 2 adapter — bridge Sentinel to your own robot over standard ROS 2 topics. See [Integrate your own adapter](/integration/overview).
+  - `image_transport` camera adapter for existing ROS 2 camera streams.
+  - Network diagnostics on the operator dashboard.
+  - Logs and metrics are tagged with the container build version.
+  - Fixed MCAP file-name suffixes.
+</Update>
+
+<Update label="0.9.0" description="June 13, 2026">
+  - PTZ camera control — toggle between locomotion and PTZ mode to aim PTZ cameras with the joysticks.
+  - AgileX PiperX support.
+  - Independent left/right arm control via per-arm grip gating.
+  - E-stop handling and disarm support, including software e-stop recovery without restarting the runtime.
+  - Fixed the multi-chain deadman system.
+  - Connection reliability improvements.
 </Update>
 
 <Update label="0.8.0" description="June 1, 2026">
