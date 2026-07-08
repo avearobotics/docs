@@ -1,0 +1,114 @@
+---
+title: "Advanced Docker setup"
+description: "The full docker run command, flags, mounts, and environment variables."
+---
+
+The `run_sentinel.sh` launcher from [Installation](/installation) handles most setups. This page is the reference for running the container directly — useful when you need to customize flags, mounts, or middleware.
+
+A minimal command to get started:
+
+```shell
+docker run -it --rm \
+  --name sentinel-runtime-1 \
+  --privileged \
+  --network host \
+  --runtime nvidia \
+  -v "/ABSOLUTE/PATH/TO/CONFIG:/config/robot.yaml:ro" \
+  -v "$HOME/datasets:/datasets" \
+  $AVEA_SENTINEL_REGISTRY/sentinel-runtime:<VERSION>-<PLATFORM>
+```
+
+The example below corresponds to a config with **1 robot, 2 ZED X Mini (GMSL) cameras, and 1 RealSense D435** on a 6-DoF actuated neck. The robot uses ROS for real-time control over a specified domain ID, with CycloneDDS as the middleware.
+
+```shell
+docker run -it --rm \
+  --name sentinel-runtime-1 \
+  --privileged \
+  --network host \
+  --runtime nvidia \
+  --gpus all \
+  --group-add video \
+  --group-add plugdev \
+  $(getent group render >/dev/null && echo "--group-add $(getent group render | cut -d: -f3)") \
+  $(getent group i2c >/dev/null && echo "--group-add $(getent group i2c | cut -d: -f3)") \
+  -v /dev:/dev \
+  -v /tmp:/tmp \
+  -v sentinel-zed-models:/usr/local/zed/resources \
+  -v "$HOME/datasets:/datasets" \
+  -v "$HOME/teleop_ws/cyclonedds.xml:/cyclonedds.xml:ro" \
+  -v "$HOME/teleop_ws/robot.yaml:/config/robot.yaml:ro" \
+  -v "$HOME/teleop_ws/.xlerobot_neck_calibration.json:/config/neck_calibration.json" \
+  -e NVIDIA_VISIBLE_DEVICES=all \
+  -e NVIDIA_DRIVER_CAPABILITIES=all \
+  -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp \
+  -e ROS_DOMAIN_ID=1 \
+  -e CYCLONEDDS_URI="/cyclonedds.xml" \
+  $AVEA_SENTINEL_REGISTRY/sentinel-runtime:${VERSION}-${PLATFORM}
+```
+
+## Flags
+
+- `--privileged` — full hardware access, including `/dev`.
+- `--network host` — uses the host network stack. Required for robots that communicate over LAN.
+- `--runtime nvidia` — injects NVIDIA drivers/libraries via the NVIDIA Container Toolkit.
+- `--gpus all` — not strictly required, but some x86 platforms complain without it.
+- `--group-add video` — access to the video group for USB/UVC cameras (RealSense, ZED 2).
+- `--group-add plugdev` — lets camera SDKs detect and dynamically mount new devices in the container.
+
+The following snippet conditionally adds the `render` and `i2c` groups only if they exist on the host:
+
+```shell
+$(getent group render >/dev/null && echo "--group-add $(getent group render | cut -d: -f3)") \
+$(getent group i2c >/dev/null && echo "--group-add $(getent group i2c | cut -d: -f3)") \
+```
+
+These are required for **ZED X cameras** — without them the ZED SDK can't reliably access the GPU for GMSL deserialization. The `i2c` group doesn't exist on most x86 systems, so the conditional only adds the flag when the group is present.
+
+## Mounts
+
+- `-v /dev:/dev` — redundant with `--privileged` in most cases, but safer to include explicitly.
+- `-v /tmp:/tmp` — required for the ZED SDK to reach the host's ZED X daemon via `/tmp/argus_socket`.
+- `-v "$HOME/datasets:/datasets"` — maps the host datasets directory. If it doesn't exist, the entrypoint creates it and fixes permissions automatically.
+- `-v "$HOME/teleop_ws/cyclonedds.xml:/cyclonedds.xml:ro"` — Sentinel supports both CycloneDDS and FastDDS. Mount a middleware config to pin traffic to an interface or configure discovery. FastDDS profiles mount at `/fastdds_profile.xml`.
+- `-v ".../robot.yaml:/config/robot.yaml:ro"` — your robot config file.
+- `-v sentinel-zed-models:/usr/local/zed/resources` — a named Docker volume for optimized ZED depth models.
+  - Only required if you use the depth feature on ZED cameras. On first run Docker creates the volume and the runtime pulls, optimizes, and stores the models.
+  - If your ZED SDK version matches your JetPack/CUDA version and you have the ZED SDK on the host, you can mount `-v /usr/local/zed/resources:/usr/local/zed/resources` to share optimized models directly.
+- `-v "$HOME/teleop_ws/.xlerobot_neck_calibration.json:/config/neck_calibration.json"` — maps the neck hardware calibration file. The path is specified in your `robot.yaml` under the neck adapter.
+  - This is an example of mounting hardware-specific artifacts; it isn't required for every setup. Ask on Slack if unsure.
+
+<Note>
+  The `calibration_file` field in your config should point to the in-container path:
+
+  ```yaml
+  adapters:
+    - id: "neck"
+      plugin: "sentinel_adapter_xlerobot_neck::XLERobotNeckAdapter"
+      publish_rate_hz: 30.0
+      neck:
+        port: "/dev/ttyACM0"
+        baudrate: 1000000
+        motor_model: "sts3215"
+        yaw_id: 2
+        pitch_id: 1
+        calibration_file: "/config/neck_calibration.json"
+        disable_torque_on_disconnect: true
+  ```
+</Note>
+
+## Environment variables
+
+```shell
+-e NVIDIA_VISIBLE_DEVICES=all \
+-e NVIDIA_DRIVER_CAPABILITIES=all \
+```
+
+Not strictly required, but recommended for deterministic GPU access across systems.
+
+```shell
+-e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp \
+-e ROS_DOMAIN_ID=1 \
+-e CYCLONEDDS_URI="/cyclonedds.xml" \
+```
+
+Required when the robot uses CycloneDDS. Set `ROS_DOMAIN_ID` to match your robot's configured domain, and point `CYCLONEDDS_URI` at the mounted config file.

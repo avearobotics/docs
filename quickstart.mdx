@@ -1,47 +1,57 @@
 ---
 title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+description: "From a config to driving a robot in VR."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
+Sentinel runs as a container on a computer near the robot, driven by a single `robot.yaml`. The path from zero to driving:
 
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
+```mermaid
+flowchart TD
+    A["1 · Get a config"] --> B["2 · Install the runtime"]
+    B --> C["3 · Bring it up<br/>arm, home, teleop"]
+    C --> D["4 · Drive and record 🎉"]
 
-## Prerequisites
+    style A fill:#d4d7ec,stroke:#383d66
+    style D fill:#383d66,color:#fff,stroke:#252840
+```
 
-Before you begin, you must have:
-
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+## Steps
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
-
-    ```bash
-    npm install your-package
-    ```
+  <Step title="Get a config for your robot">
+    Supported hardware has ready-made configs — see [Example configs](/configuration/examples). For hardware without a prebuilt adapter, connect over ROS 2: [Integrate your own adapter](/integration/overview). The [configuration reference](/configuration/reference) explains every section.
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
 
-    ```bash
-    your-cli init
-    ```
+  <Step title="Install the runtime">
+    Install the prerequisites and launch the container with your config on a computer near the robot. See [Installation](/installation).
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
 
-    ```bash
-    your-cli start
-    ```
+  <Step title="Bring it up">
+    Confirm joint state is flowing, **arm** the robot, run a homing move, then **start teleoperation** (the operator squeezes the grip). Tune limits and motion smoothing as needed.
+  </Step>
+
+  <Step title="Drive and record">
+    The operator puts on the headset and drives. Each session records to MCAP for training — see [Using your data](/data/using-your-data).
   </Step>
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+## Concepts worth reading first
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
+<CardGroup cols={2}>
+  <Card title="Architecture" icon="diagram-project" href="/concepts/architecture">
+    The runtime, the cloud, and where the robot fits.
+  </Card>
+  <Card title="State machine" icon="diagram-predecessor" href="/concepts/state-machine">
+    **Armed** vs **teleoperating**, and when commands reach the motors.
+  </Card>
+  <Card title="Controllers and buttons" icon="gamepad" href="/concepts/controllers">
+    What the operator's buttons do, and how teleop starts and stops.
+  </Card>
+  <Card title="Configuration reference" icon="gears" href="/configuration/reference">
+    Every section of `robot.yaml`.
+  </Card>
+</CardGroup>
+
+<Tip>
+  Stuck mapping something to your robot? Reach the team on [Slack](https://avea-robotics.slack.com).
 </Tip>

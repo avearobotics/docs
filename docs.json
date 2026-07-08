@@ -1,37 +1,74 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mintlify Starter Kit",
+  "name": "Sentinel",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#383d66",
+    "light": "#929cd6",
+    "dark": "#252840"
   },
   "favicon": "/favicon.svg",
+  "appearance": {
+    "default": "system"
+  },
+  "background": {
+    "decoration": "gradient"
+  },
   "navigation": {
     "pages": [
       {
-        "group": "Getting Started",
+        "group": "Get started",
         "pages": [
           "index",
-          "quickstart"
+          "quickstart",
+          "installation"
+        ]
+      },
+      {
+        "group": "Configuration",
+        "pages": [
+          "configuration/reference",
+          "configuration/examples",
+          "configuration/advanced-docker"
+        ]
+      },
+      {
+        "group": "Hardware",
+        "pages": [
+          "hardware/supported",
+          "hardware/immersive-neck"
+        ]
+      },
+      {
+        "group": "Your data",
+        "pages": [
+          "data/using-your-data"
+        ]
+      },
+      {
+        "group": "Concepts",
+        "pages": [
+          "concepts/architecture",
+          "concepts/state-machine",
+          "concepts/controllers"
+        ]
+      },
+      {
+        "group": "Integrate your own adapter",
+        "pages": [
+          "integration/overview",
+          "integration/robot-adapter",
+          "integration/camera-adapter",
+          "integration/configuration"
+        ]
+      },
+      {
+        "group": "Changelog",
+        "pages": [
+          "changelog"
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
+    ]
   },
   "logo": {
     "light": "/logo/light.svg",
@@ -40,14 +77,14 @@
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "Talk to us on Slack",
+        "href": "https://avea-robotics.slack.com"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
+      "label": "Start integration",
+      "href": "https://avea-robotics.slack.com"
     }
   },
   "contextual": {
@@ -55,18 +92,12 @@
       "copy",
       "view",
       "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
+      "claude"
     ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "website": "https://avearobotics.com"
     }
   }
 }

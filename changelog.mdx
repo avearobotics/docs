@@ -1,0 +1,97 @@
+---
+title: "Changelog"
+description: "Sentinel runtime release notes."
+---
+
+<Update label="0.8.0" description="June 1, 2026">
+  - Configs can change camera panel placement and size in pass-through mode.
+    - Panels sit in a 3×3 grid: `{top,middle,bottom}_{left,center,right}`.
+    - Sizes are fractional values in `[0.25, 4.0]`.
+
+    ```yaml
+    xr:
+      coordinate_system: "webxr"
+      video:
+        enabled: true
+        mode: "pre_encoded"
+        cameras:
+          - {id: "neck", panel_position: "middle_left", panel_size: 2.0}
+          - {id: "chest", panel_position: "middle_right"}
+          - {id: "left_wrist", panel_position: "bottom_left"}
+          - {id: "right_wrist", panel_position: "bottom_right", panel_size: 0.25}
+        resolution: [1920, 1080]
+        fps: 30
+        max_latency_ms: 100
+    ```
+  - Improved connection and retry logic for more robust, reliable connections.
+  - Fixed a bug where turning your head too far in one direction caused neck commands to roll around the other way.
+</Update>
+
+<Update label="0.7.0" description="May 25, 2026">
+  - New platform:
+    - Website backend revamped — better render performance and graphics.
+    - New web client at [Sentinel XR Teleoperation](http://app.avearobotics.com).
+    - Accompanying [Avea Robotics dashboard](http://dashboard.avearobotics.com).
+  - Support for non-CUDA computers:
+    - `amd64` — x86_64
+    - `arm64` — arm64
+    - `amd64-cu13` — x86_64 CPU with discrete NVIDIA GPU (CUDA Toolkit 13)
+    - `jp6.2` — Jetson family running JetPack 6.2.x (CUDA Toolkit 12.6)
+  - New transport backend — faster connection times, more stable streams.
+  - Added LimX Dynamics Oli robot: arm retargeting, neck movement, head and chest camera access, locomotion, Inspire gripper, BrainCo dex-hand (pre-programmed grasps + open/close).
+  - Dataset recording changes:
+    - Episodes are written to `session_<ts>/episode-###.in_progress/` while recording, then atomically renamed to `*.finalized/` on stop. NAS sync, sqlite ledgers, and downstream tooling can rely on the suffix to tell unfinalized data apart.
+    - Session rollover — `episodes_per_session` rotates session folders automatically.
+    - Two new services — `discard_episode` (hard delete; counter rolls back so there are no gaps) and `fail_episode` (mark `outcome=failure` and let policy decide: keep, delete, or mark-and-archive).
+</Update>
+
+<Update label="0.6.0" description="May 16, 2026">
+  - Fixed inconsistent "A" button behavior for dual-arm robots.
+  - Added "success"/"failure" labeling with the `fail_episode` service.
+</Update>
+
+<Update label="0.5.1" description="May 11, 2026">
+  - Added support for UR robots.
+  - Added support for the Robotiq gripper.
+</Update>
+
+<Update label="0.4.1" description="April 30, 2026">
+  - Fixed a bug in the `cycle_wrist_cam` handler for RGB-only or heatmap-only encoder setups.
+</Update>
+
+<Update label="0.4.0" description="April 27, 2026">
+  - Haptics when control error crosses a configured threshold, with a matching visual indicator in the UI.
+  - Added depth encoders to cameras: PNG encoder for lossless `16UC1` depth, and a heatmap + H.264 encoder for visualizing depth in the Quest.
+  - Fixed a track-labeling bug.
+  - Added the `cycle_wrist_cam` button handler.
+  - Auto-stop tracks from being sent when not displayed in the UI.
+  - Support for up to 5 videos in the UI.
+</Update>
+
+<Update label="0.3.0" description="April 22, 2026">
+  - Added depth-image collection from ZED and RealSense cameras.
+  - Permissions fixes.
+  - Bumped ZED SDK to 5.2 on all platforms.
+  - Formal support for JetPack 6.2.2 (`l4t 36.5`).
+</Update>
+
+<Update label="0.2.0" description="April 20, 2026">
+  - Added analog control of velocity scale for arm retargeting.
+  - Refactored the button system — all buttons and analog sources are remappable; analog sources can act as virtual buttons with rising/falling edge events.
+  - Added 6-DoF neck support.
+  - Web client UI improvements: unified HUD, episode start/stop, system state indicator, network quality indicator, RTT indicator.
+  - Reduced dependency footprint.
+</Update>
+
+<Update label="0.1.6" description="April 15, 2026">
+  - Added Trossen WXAI support.
+  - Added XLeRobot neck support.
+</Update>
+
+<Update label="0.1.5 — Initial release" description="April 10, 2026">
+  - Standard Bots and YAM support.
+  - ZED, ZED X, RealSense, and UVC camera support.
+  - JetPack 6.2 and amd64 support.
+  - Multi-host runtime.
+  - Dataset recording.
+</Update>

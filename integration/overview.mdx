@@ -1,0 +1,84 @@
+---
+title: "Integration overview"
+description: "What your robot publishes and subscribes to so it works with Sentinel."
+---
+
+This section is for **integrating a robot we don't have a prebuilt adapter for**. If your hardware is on the [supported list](/hardware/supported), you don't need any of this — we send you a config and you [install and run](/installation). Otherwise, read on: you expose a few standard ROS 2 topics and we adapt Sentinel to them.
+
+It covers what your robot publishes and subscribes to — the topics, message types, units, and rates. You can set this up and test it on your own before we connect anything.
+
+## At a glance
+
+Your robot talks to Sentinel over a few standard ROS 2 topics. Set up the ones for the capabilities you have.
+
+```mermaid
+flowchart LR
+    RT["⚙️ Sentinel runtime"]
+    subgraph yours["Your robot — standard ROS 2 controllers"]
+        C1["Arm"]
+        C2["Gripper"]
+        C3["Mobile base"]
+        C4["Camera"]
+    end
+
+    RT -->|"JointTrajectory"| C1
+    RT -->|"JointTrajectory / Float64"| C2
+    RT -->|"Twist"| C3
+    C1 -.->|"JointState"| RT
+    C4 -.->|"CompressedImage"| RT
+
+    style RT fill:#d4d7ec,stroke:#383d66
+```
+
+**Solid arrows** are commands Sentinel sends you; **dotted arrows** are the state and data you publish back.
+
+| Capability | You subscribe to (command) | You publish (state / data) |
+| --- | --- | --- |
+| **Arm** | `trajectory_msgs/JointTrajectory` | `sensor_msgs/JointState` |
+| **Gripper** | `trajectory_msgs/JointTrajectory` or `std_msgs/Float64` | `sensor_msgs/JointState` *(optional)* |
+| **Mobile base** | `geometry_msgs/Twist` | — |
+| **Camera neck** | `trajectory_msgs/JointTrajectory` or `geometry_msgs/PoseStamped` | `sensor_msgs/JointState` *(if joint-driven)* |
+| **Dexterous hand** | `trajectory_msgs/JointTrajectory` | `sensor_msgs/JointState` *(optional)* |
+| **Elevator / torso lift** | `std_msgs/Float64` *(position or velocity)* | — |
+| **PTZ camera** | `geometry_msgs/Twist` *(pan/tilt/zoom rates)* | — |
+| **Camera** | — | `sensor_msgs/CompressedImage` |
+
+You pick the topic names and we put them in your config. The message types, units, and rates below are fixed.
+
+<Note>
+  More than an arm? Mobile base, camera neck, hand, lift, and PTZ all work the same way — standard ROS 2 topics, with the exact messages settled with you. Got something not in the list? [Ask us on Slack](https://avea-robotics.slack.com) and we'll add it.
+</Note>
+
+## The two parts
+
+<CardGroup cols={2}>
+  <Card title="Robot control interface" icon="robot" href="/integration/robot-adapter">
+    Arm, gripper, and base. Receiving commands and reporting joint state, with units and rates.
+  </Card>
+  <Card title="Camera interface" icon="video" href="/integration/camera-adapter">
+    Streaming a camera feed to the headset over a standard image topic.
+  </Card>
+</CardGroup>
+
+## A few rules
+
+These apply everywhere and come from the [state machine](/concepts/state-machine).
+
+<Steps>
+  <Step title="Report state all the time">
+    Publish joint state in every mode, even disarmed. The runtime won't arm the robot until it sees your state.
+  </Step>
+  <Step title="Only move during teleoperation">
+    Hold position when armed but not teleoperating. Don't assume commands are always arriving.
+  </Step>
+  <Step title="Use SI units">
+    Radians for joint angles, rad/s for joint velocity, m/s and rad/s for base motion. Never degrees.
+  </Step>
+  <Step title="Match the QoS we give you">
+    We'll tell you the QoS for each topic — usually best-effort for high-rate state and video, reliable for commands. If it doesn't match, the topics won't connect.
+  </Step>
+</Steps>
+
+<Tip>
+  You can test your robot with plain ROS 2 tools before connecting to Sentinel: publish a fake `JointState`, echo the command topic, send a test command and watch the robot move. If it works with `ros2 topic`, it'll work with Sentinel.
+</Tip>
