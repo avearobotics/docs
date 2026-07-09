@@ -21,7 +21,7 @@ flowchart LR
         C4["Camera"]
     end
 
-    RT -->|"JointTrajectory"| C1
+    RT -->|"JointTrajectory / Float64MultiArray"| C1
     RT -->|"JointTrajectory / Float64"| C2
     RT -->|"Twist"| C3
     C1 -.->|"JointState"| RT
@@ -34,8 +34,8 @@ flowchart LR
 
 | Capability | You subscribe to (command) | You publish (state / data) |
 | --- | --- | --- |
-| **Arm** | `trajectory_msgs/JointTrajectory` | `sensor_msgs/JointState` |
-| **Gripper** | `trajectory_msgs/JointTrajectory` or `std_msgs/Float64` | `sensor_msgs/JointState` *(optional)* |
+| **Arm** | `trajectory_msgs/JointTrajectory`, or `std_msgs/Float64MultiArray` for forward position controllers | `sensor_msgs/JointState` |
+| **Gripper** | `trajectory_msgs/JointTrajectory`, `std_msgs/Float64`, or a slot in the arm command array | `sensor_msgs/JointState` *(optional)* |
 | **Mobile base** | `geometry_msgs/Twist` | — |
 | **Camera neck** | `trajectory_msgs/JointTrajectory` or `geometry_msgs/PoseStamped` | `sensor_msgs/JointState` *(if joint-driven)* |
 | **Dexterous hand** | `trajectory_msgs/JointTrajectory` | `sensor_msgs/JointState` *(optional)* |
