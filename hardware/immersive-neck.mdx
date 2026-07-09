@@ -5,6 +5,10 @@ description: "Build, wire, and calibrate the ZED Mini actuated neck."
 
 The immersive neck is a 2-DoF actuated mount for a ZED Mini that follows the operator's head. This guide covers building and calibrating one.
 
+<Frame caption="The assembled immersive neck">
+  <img src="/images/immersive-neck.png" alt="Assembled immersive neck: ZED Mini on a 3D-printed 2-DoF servo mount" />
+</Frame>
+
 ## Requirements
 
 - ZED Mini
@@ -35,7 +39,7 @@ The immersive neck is a 2-DoF actuated mount for a ZED Mini that follows the ope
   </Step>
 
   <Step title="Calibrate">
-    Run the calibration script (provided by Avea — ask on Slack):
+    Download <a href="/scripts/calibrate.py" download>`calibrate.py`</a> and run it. It needs the Feetech `scservo_sdk` Python package (`pip install feetech-servo-sdk`).
 
     ```shell
     python3 calibrate.py --port <port> --output <path>/neck_calibration.json
@@ -47,7 +51,7 @@ The immersive neck is a 2-DoF actuated mount for a ZED Mini that follows the ope
   </Step>
 
   <Step title="Test the limits">
-    Verify the calibration with the test script (provided by Avea):
+    Verify the calibration with <a href="/scripts/test_limits.py" download>`test_limits.py`</a>:
 
     ```shell
     python3 test_limits.py --port <port> --calibration-file <path to calibration>
@@ -66,7 +70,3 @@ The immersive neck is a 2-DoF actuated mount for a ZED Mini that follows the ope
 <Check>
   Once the hardware is working, reach out to the Avea team for the required config changes (see [Example configs](/configuration/examples) for immersive-neck setups).
 </Check>
-
-<Note>
-  The `calibrate.py` and `test_limits.py` scripts were attachments in our internal docs and aren't checked into this site yet — request them on Slack.
-</Note>
