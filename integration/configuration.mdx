@@ -1,80 +1,132 @@
 ---
-title: "Your config file"
-description: "How Sentinel is set up for your robot, and why we build it with you."
+title: "Set up your config"
+description: "Pick a pre-filled config for your robot's shape, edit the marked fields, and launch."
 ---
 
-Everything about how Sentinel works with your robot lives in one config file: which topics to use, your robot's kinematics, how motion is smoothed, safety limits, button mappings, and which cameras to stream.
+Everything about how Sentinel works with your robot lives in one `robot.yaml`: which topics to use, your robot's kinematics, how motion is smoothed, safety limits, button mappings, and which cameras to stream.
 
-You don't write this file yourself — we build and tune it with you. This page covers what's in it and what we need from you.
+You don't write it from scratch. Pick the template that matches your robot's shape, fill in the `<EDIT>` fields, and launch. The templates are complete, known-good files — every value you don't touch is a safe default.
 
-## Why we build it
+## 1 · Pick your template
 
-The config holds settings that take robotics experience to get right: joint limits, inverse kinematics, motion smoothing, workspace bounds, and safety margins. Get them wrong and the robot is either unsafe or feels bad to drive. So you describe your robot, we write a config for it, and we tune it together during bring-up.
+<Tabs>
+  <Tab title="Single arm + gripper">
+    One arm behind a `ros2_control` forward position controller (or a
+    `JointTrajectory` topic — the template shows both), a gripper on its own
+    topic, one camera.
 
-```mermaid
-flowchart LR
-    A["You describe<br/>your robot"] --> B["We build<br/>your config"]
-    B --> C["We tune it<br/>during bring-up"]
-    C --> D["✅ Your robot<br/>in Sentinel"]
+    <a href="/configs/ros2_single_arm.yaml" download>⬇ Download `ros2_single_arm.yaml`</a>
 
-    style B fill:#d4d7ec,stroke:#383d66
-    style D fill:#383d66,color:#fff,stroke:#252840
-```
+    The heart of the file — where Sentinel meets your topics:
 
-## What's in it
+    ```yaml
+    bridge:
+      manipulator:
+        command:
+          outputs:                                          # forward position controller
+            - topic: "/forward_position_controller/commands"
+              qos: "reliable"
+              joint_names: [joint_1, joint_2, joint_3,      # YOUR controller's
+                            joint_4, joint_5, joint_6]      # configured joint order
+        state:
+          topic: "/joint_states"                            # must always be flowing
+          qos: "sensor"
+          stale_timeout_s: 0.5                              # dead stream -> e-stop
 
-You don't edit these, but it helps to know what's there:
+      gripper:
+        command:
+          message_type: "float64"
+          topic: "/gripper/command"
+          mapping: {mode: "affine", offset: 0.0, scale: 0.8}  # 0-100% -> your range
+    ```
+  </Tab>
+  <Tab title="Dual arm (bimanual)">
+    Two arms behind one ROS 2 stack: one forward position controller per arm,
+    one shared `/joint_states`, grippers carried as the trailing slot of each
+    arm's command array (swap in per-gripper topics if yours are separate),
+    three cameras.
 
-<CardGroup cols={2}>
-  <Card title="Topics" icon="diagram-project">
-    The command, state, and camera topics from the [control](/integration/robot-adapter) and [camera](/integration/camera-adapter) interfaces.
-  </Card>
-  <Card title="Capabilities" icon="puzzle-piece">
-    Which of arm, gripper, base, neck, and so on your robot has. See [architecture](/concepts/architecture).
-  </Card>
-  <Card title="Kinematics and limits" icon="ruler-combined">
-    Joint names, ranges, and home poses, from your URDF.
-  </Card>
-  <Card title="Motion" icon="wave-square">
-    How the operator's hand maps to your robot, and how motion is smoothed and limited.
-  </Card>
-  <Card title="Safety" icon="shield-halved">
-    Velocity caps, joint margins, and emergency-stop behavior.
-  </Card>
-  <Card title="Buttons and cameras" icon="gamepad">
-    The controller mappings and which camera feeds show up. See [controllers](/concepts/controllers).
-  </Card>
-</CardGroup>
+    <a href="/configs/ros2_dual_arm.yaml" download>⬇ Download `ros2_dual_arm.yaml`</a>
 
-## What we need from you
+    The heart of the file:
 
-Bring these when we set things up and it goes quickly:
+    ```yaml
+    bridge:
+      manipulator:
+        command:
+          outputs:                                          # one array stream per arm
+            - topic: "/left_forward_position_controller/commands"
+              qos: "reliable"
+              joint_names: [left_joint_1, ..., left_gripper_joint]
+            - topic: "/right_forward_position_controller/commands"
+              qos: "reliable"
+              joint_names: [right_joint_1, ..., right_gripper_joint]
+        state:
+          topic: "/joint_states"                            # both arms, one stream
+          qos: "sensor"
+          stale_timeout_s: 0.5
+
+      gripper:
+        command:
+          message_type: "manipulator_slot"                  # gripper rides in the array
+          left_joint: "left_gripper_joint"
+          right_joint: "right_gripper_joint"
+          mapping: {mode: "affine", offset: 0.0, scale: 0.05}
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  Different shape — mobile base, neck, dexterous hand, elevator, PTZ? Start
+  from the closest template; each extra capability is one more block in the
+  `bridge:` section. [Ask us on Slack](https://avea-robotics.slack.com) and
+  we'll hand you the block for it.
+</Note>
+
+## 2 · Fill in the `<EDIT>` fields
+
+Every field you must change is marked `<EDIT>` in the file. They come down to five things:
 
 <Steps>
-  <Step title="A description of your robot">
-    What it is (single arm, dual-arm, mobile manipulator, humanoid), the gripper, and the cameras.
+  <Step title="License key">
+    Generate one in the [dashboard](https://dashboard.avearobotics.com/dashboard/robots) and paste it into `system.license_key`.
   </Step>
-  <Step title="Your robot description (URDF)">
-    Gives us joint names, kinematics, and limits. Send it as a file, or have us read it live from your `robot_state_publisher`. If it's live, your publisher has to be up before the runtime starts — see [the control interface](/integration/robot-adapter#first-your-robot-description-urdf).
+  <Step title="Your URDF">
+    Point the `description:` block at your robot model — a latched `robot_description` topic, a `robot_state_publisher` parameter, or a file you mount. See [the control interface](/integration/robot-adapter#first-your-robot-description-urdf).
   </Step>
-  <Step title="Your topic names">
-    The command, state, and camera topics you've set up (see the [overview](/integration/overview)), or ask us to suggest names.
+  <Step title="Topics and joint names">
+    Your command topic(s), your `/joint_states` topic, your camera topic(s), and your joint names exactly as they appear in your URDF. In forward-position mode the `joint_names` list under each output **must match your controller's configured joint order** — that list is the array's slot order.
   </Step>
-  <Step title="Any custom actions">
-    Things you'd like an operator to trigger from the headset, so we can map them to buttons.
+  <Step title="Joint limits and poses">
+    `q_min`/`q_max` from your URDF, plus `home_positions`/`start_positions` — where "go home" sends the arm.
+  </Step>
+  <Step title="Gripper range">
+    The `mapping:` under the gripper block converts Sentinel's normalized 0 (closed) to 100 (open) into your gripper's real travel, so you never hard-code limits in your controller.
   </Step>
 </Steps>
 
-<Note>
-  Don't have all of this yet? Start the conversation anyway. This is what a finished config needs, not what you need before reaching out.
-</Note>
+<Warning>
+  Leave the `orchestration:` section alone. It sequences the runtime's nodes
+  through arm, disarm, and teleop — including the disarm teardown that stops
+  the command stream and lets a state-stream fault recover on re-arm.
+</Warning>
 
-## It can change anytime
+## 3 · Launch and tune
 
-The config isn't frozen. When we tune motion, adjust limits, remap a button, or add a camera, only the config changes — your robot's controllers stay the same, as long as the topics stay the same. That's the idea: your robot speaks standard ROS 2, and the config adapts Sentinel to it.
+Drop the file in as your `robot.yaml` and [install and run](/installation) the runtime. Bring-up order: confirm your joint state is flowing, **arm**, run a homing move, then **start teleoperation**.
 
-## Ready to start?
+The motion sections (`trajectory:` limits, retargeting `scale`, IK weights) ship deliberately conservative — the robot will feel slow at first. That's intentional: the runtime smooths every command through those limits before it reaches your controller, so they're also your step-size guard. We tune them with you during bring-up until tracking feels right.
 
-<Card title="Talk to us on Slack" icon="slack" href="https://avea-robotics.slack.com" horizontal>
-  Message us with a description of your robot — including any neck, mobile base, PTZ head, or other extras — and we'll build your config and get you driving it. No shared channel yet? Ask us for one.
+<Tip>
+  The config isn't frozen. When we tune motion, adjust limits, remap a button,
+  or add a camera, only the config changes — your robot's controllers stay the
+  same, as long as the topics stay the same.
+</Tip>
+
+## Before you go live
+
+<Card title="Have us review your config" icon="slack" href="https://avea-robotics.slack.com" horizontal>
+  Send us your filled-in config before first power-on. Joint limits, workspace
+  bounds, and motion smoothing are safety-relevant — a five-minute review
+  catches what a launch won't.
 </Card>

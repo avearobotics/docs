@@ -1,0 +1,379 @@
+# ============================================================================
+# ROS 2 robot — single arm + gripper + 1 camera (generic bridge adapter)
+# ============================================================================
+# Pre-filled config for a robot that speaks standard ROS 2: your arm runs a
+# ros2_control forward position controller (or accepts JointTrajectory — see
+# the alternative block below), publishes /joint_states, and streams a
+# compressed camera image.
+#
+# Search for <EDIT> to find everything you must fill in before launch:
+#   - system.license_key                (generate in the dashboard)
+#   - your URDF (description block)
+#   - your topic names and joint names  (bridge block)
+#   - joint limits and home positions   (from your URDF)
+#   - your camera topic
+#
+# Everything else is a safe, conservative default. We review and tune the
+# motion sections with you during bring-up.
+#
+# Docs: https://docs.avearobotics.com/integration/overview
+
+# ============================================================================
+# System
+# ============================================================================
+system:
+  license_key: "<EDIT: LICENSE_KEY>"   # dashboard.avearobotics.com/dashboard/robots
+  enable_dataset_recording: true
+
+button_listener:
+  debounce_duration: 0.5
+
+# ============================================================================
+# XR — what the operator sees
+# ============================================================================
+xr:
+  coordinate_system: "webxr"
+  video:
+    enabled: true
+    mode: "pre_encoded"
+    cameras:
+      - {id: "main"}
+    max_latency_ms: 100
+
+# ============================================================================
+# Controller mapping — right hand drives the arm
+# ============================================================================
+analog_inputs:
+  right_grip:    right_grip_control
+  right_trigger: right_gripper_control
+
+buttons:
+  right_grip_control:
+    source: right_grip_control
+    threshold: 0.5
+    rising_edge:
+      service: "/robot/sentinel/system/service/start_teleop"
+    falling_edge:
+      service: "/robot/sentinel/system/service/stop_teleop"
+
+  a_button:
+    single_press:
+      handler: "arm_and_start_all"
+      params:
+        arm_timeout_sec: 30.0
+    long_press:
+      handler: "go_home_all"
+
+  b_button:
+    single_press:
+      handler: "disarm_all"
+
+  x_button:
+    single_press:
+      service: "/sentinel/dataset/service/toggle_episode"
+
+  y_button:
+    single_press:
+      service: "/sentinel/dataset/service/fail_episode"
+
+# ============================================================================
+# Camera — bridged from your existing ROS 2 image topic
+# ============================================================================
+cameras:
+  - name: "main"
+    adapter:
+      plugin: "sentinel_vision_adapter_ros2_bridge::ROS2BridgeCamera"
+      config:
+        source_topic: "<EDIT: /your/camera/image_raw/compressed>"
+        camera_id: "main"
+        output_format: "bgr8"
+    encoders:
+      - name: "streaming"
+        plugin: "sentinel_vision_encoder_gstreamer::GStreamerEncoder"
+        topic: "encoded"
+        qos: "streaming"
+        config:
+          encoding: "h264"
+          width: 1280
+          height: 720
+          framerate: 30
+          bitrate: 4000
+          hw_accel: "none"        # "nvenc" if you have an NVIDIA GPU
+          preset: "veryfast"
+          tune: "zerolatency"
+          rate_control: "cbr"
+          profile: "main"
+          gop_size: 2
+          bframes: 0
+
+# ============================================================================
+# Dataset recording
+# ============================================================================
+dataset_recording:
+  enabled: true
+  output_dir: "/datasets"
+  storage_format: "mcap"
+  max_bag_size_bytes: 1073741824
+  min_free_disk_bytes: 5368709120
+  fps: 30.0
+  topics:
+    - /tf
+    - /tf_static
+    - /sentinel/events
+    - /sentinel/xr/input/xr_input
+    - /robot/sentinel/system/state/current
+    - /robot/sentinel/robot/state/joint_states/measured
+    - /robot/sentinel/robot/state/gripper_states/measured
+    - /robot/sentinel/control/commands/joint_safe
+    - /robot/sentinel/control/commands/gripper
+    - /sentinel/vision/output/main/encoded
+
+# ============================================================================
+# Your robot
+# ============================================================================
+systems:
+  - name: "<EDIT: Your Robot>"
+    namespace: "robot"
+    serial: "001"
+
+    adapters:
+      - id: "arm"
+        plugin: "sentinel_adapter_ros2_bridge::Ros2BridgeAdapter"
+
+        # Your robot model. Three ways to provide it — pick ONE:
+        #   topic:     we subscribe to your latched robot_description topic
+        #   parameter: we read it off your robot_state_publisher
+        #   file:      a URDF file you mount into the container
+        description:
+          source: topic
+          topic: "<EDIT: /robot_description>"
+          timeout_s: 10.0
+        # description:
+        #   source: parameter
+        #   node: "<EDIT: /robot_state_publisher>"
+        #   parameter: "robot_description"
+        #   timeout_s: 10.0
+        # description:
+        #   source: file
+        #   path: "<EDIT: /config/your_robot.urdf>"
+
+        bridge:
+          manipulator:
+            enabled: true
+            capability_id: "arm"
+            command:
+              # -- Forward position controller (recommended) ----------------
+              # One nameless Float64MultiArray stream onto your controller's
+              # commands topic. joint_names declares the array's slot order —
+              # it must match your controller's configured joint order.
+              outputs:
+                - topic: "<EDIT: /forward_position_controller/commands>"
+                  qos: "reliable"
+                  joint_names:
+                    - "<EDIT: joint_1>"
+                    - "<EDIT: joint_2>"
+                    - "<EDIT: joint_3>"
+                    - "<EDIT: joint_4>"
+                    - "<EDIT: joint_5>"
+                    - "<EDIT: joint_6>"
+              # -- OR: JointTrajectory (delete `outputs` above if used) -----
+              # topic: "<EDIT: /joint_trajectory_controller/joint_trajectory>"
+              # qos: "reliable"
+            state:
+              # Your JointState stream. Must flow continuously, in every
+              # mode, before the robot can arm. Names are matched to your
+              # URDF's joint names — no remapping needed when they agree.
+              topic: "<EDIT: /joint_states>"
+              qos: "sensor"
+              # Dead stream -> fault -> emergency stop. 0 disables (don't).
+              stale_timeout_s: 0.5
+
+          gripper:
+            enabled: true
+            capability_id: "gripper"
+            command:
+              # Normalized 0 (closed) .. 100 (open) mapped onto your gripper.
+              # message_type: joint_trajectory | float64 | float64_multi_array
+              # If your gripper is one more slot of the arm command array,
+              # use message_type: manipulator_slot instead (see the dual-arm
+              # template for a worked example).
+              message_type: "float64"
+              topic: "<EDIT: /gripper/command>"
+              qos: "reliable"
+              mapping:
+                mode: "affine"
+                # 0..100% -> your gripper's real range:
+                # value = offset + (command/100) * scale
+                offset: 0.0
+                scale: "<EDIT: 0.8>"      # full-open value in your units
+                out_min: 0.0
+                out_max: "<EDIT: 0.8>"
+            state:
+              enabled: false
+              # Publish gripper feedback? Enable and point at the JointState
+              # that carries your gripper joint:
+              # topic: "<EDIT: /gripper/joint_states>"
+              # joint: "<EDIT: gripper_joint>"
+              # in_min: 0.0
+              # in_max: "<EDIT: 0.8>"
+
+    capabilities:
+      - type: manipulator
+        id: arm
+        adapter_id: "arm"
+        enabled: true
+
+        posturing:
+          enabled: false
+          mode: "simple"
+          weight: 0.0
+
+        chains:
+          - id: arm
+            base_link: "<EDIT: base_link>"
+            ee_link: "<EDIT: tool0>"
+            joints:
+              - "<EDIT: joint_1>"
+              - "<EDIT: joint_2>"
+              - "<EDIT: joint_3>"
+              - "<EDIT: joint_4>"
+              - "<EDIT: joint_5>"
+              - "<EDIT: joint_6>"
+            # Joint limits in radians, from your URDF:
+            q_min: ["<EDIT>", "<EDIT>", "<EDIT>", "<EDIT>", "<EDIT>", "<EDIT>"]
+            q_max: ["<EDIT>", "<EDIT>", "<EDIT>", "<EDIT>", "<EDIT>", "<EDIT>"]
+            # A comfortable neutral pose (radians):
+            q_nominal: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+        retargeting:
+          mode: "simple"
+          enable_posture: false
+          scale: 1.0                     # operator hand motion multiplier
+          workspace_limits:
+            min: ["<EDIT: -0.4>", "<EDIT: -0.5>", "<EDIT: 0.1>"]   # meters
+            max: ["<EDIT: 0.6>", "<EDIT: 0.5>", "<EDIT: 0.8>"]
+          tracking_frames:
+            primary: "controller_right"
+          laterality: "right"
+          control_button: "trigger"
+          coordinate_transform: [0, 0, 1, -1, 0, 0, 0, 1, 0]
+          grip_threshold: 0.5
+          reanchor_on_grip: true
+
+        ik:
+          solver_mode: "simple"
+          solver: "casadi"
+          max_iterations: 50
+          tolerance: 0.001
+          timeout_ms: 100.0
+          enable_posture: false
+          weight_translational: 100.0
+          weight_rotational: 50.0
+          weight_regularization: 0.1
+          weight_smooth: 0.1
+          weight_manipulability: 0.0
+
+        # Conservative starting limits — the runtime smooths every command
+        # through these before it reaches your controller. We raise them with
+        # you during bring-up once tracking feels right.
+        trajectory:
+          control_mode: "open_loop"
+          max_velocity:     [2.0, 2.0, 2.0, 3.0, 3.0, 3.0]    # rad/s
+          max_acceleration: [6.0, 6.0, 6.0, 8.0, 8.0, 8.0]    # rad/s^2
+          max_jerk:         [18.0, 18.0, 18.0, 24.0, 24.0, 24.0]  # rad/s^3
+
+        planning:
+          interpolation_points: 100
+          execution_rate_hz: 60.0
+          planning_time_limit: 10.0
+          enable_viz: true
+          joints_to_lock: []
+
+      - type: gripper
+        id: gripper
+        adapter_id: "arm"
+        enabled: true
+        parent_chain: arm
+
+        retargeting:
+          mode: "toggle"
+          laterality: "right"
+          control_button: "trigger"
+          trigger_threshold: 0.5
+          close_threshold: 0.7
+          open_threshold: 0.3
+          toggle_debounce_s: 0.3
+          invert: true
+
+        hardware:
+          speed: 50.0
+          force: 40.0
+
+    safety:
+      joint_limit_margin: 0.05
+      velocity_limit_scale: 0.9
+      emergency_stop_enabled: true
+
+    state_machine:
+      initial_state: "DISARMED"
+      joint_names:
+        - "<EDIT: joint_1>"
+        - "<EDIT: joint_2>"
+        - "<EDIT: joint_3>"
+        - "<EDIT: joint_4>"
+        - "<EDIT: joint_5>"
+        - "<EDIT: joint_6>"
+      # Where "go home" and "go to start" send the arm (radians):
+      home_positions:  ["<EDIT>", "<EDIT>", "<EDIT>", "<EDIT>", "<EDIT>", "<EDIT>"]
+      start_positions: ["<EDIT>", "<EDIT>", "<EDIT>", "<EDIT>", "<EDIT>", "<EDIT>"]
+      motion:
+        action_server_wait_timeout: 5.0
+        goal_acceptance_timeout: 2.0
+        motion_duration: 3.0
+      calibration_timeout_s: 10.0
+
+    # Don't edit: the node lifecycle for arm/disarm/teleop. The on_disarm
+    # teardown is required for bridged robots — it stops the command stream
+    # while disarmed and lets a state-stream fault recover on re-arm.
+    orchestration:
+      on_arm:
+        - {node: "robot_adapter_",       transition: "configure", timeout: 10.0}
+        - {node: "trajectory_smoother_", transition: "configure", timeout: 10.0}
+        - {node: "safety_",              transition: "configure", timeout: 10.0}
+        - {node: "arm_retargeter_",      transition: "configure", timeout: 10.0}
+        - {node: "gripper_retargeter_",  transition: "configure", timeout: 10.0}
+        - {node: "ik_solver_",           transition: "configure", timeout: 10.0}
+        - {node: "ompl_joint_planner_",  transition: "configure", timeout: 10.0}
+        - {node: "robot_adapter_",       transition: "activate",  timeout: 5.0}
+        - {node: "safety_",              transition: "activate",  timeout: 5.0}
+        - {node: "trajectory_smoother_", transition: "activate",  timeout: 5.0}
+        - {node: "gripper_retargeter_",  transition: "activate",  timeout: 5.0}
+
+      on_disarm:
+        - {node: "arm_retargeter_",      transition: "deactivate", timeout: 5.0}
+        - {node: "ik_solver_",           transition: "deactivate", timeout: 5.0}
+        - {node: "gripper_retargeter_",  transition: "deactivate", timeout: 5.0}
+        - {node: "trajectory_smoother_", transition: "deactivate", timeout: 5.0}
+        - {node: "safety_",              transition: "deactivate", timeout: 5.0}
+        - {node: "ompl_joint_planner_",  transition: "deactivate", timeout: 5.0}
+        - {node: "robot_adapter_",       transition: "deactivate", timeout: 15.0}
+
+      on_start_teleop:
+        - {node: "ik_solver_",      transition: "activate", timeout: 5.0}
+        - {node: "arm_retargeter_", transition: "activate", timeout: 5.0}
+
+      on_stop_teleop:
+        - {node: "arm_retargeter_", transition: "deactivate", timeout: 5.0}
+        - {node: "ik_solver_",      transition: "deactivate", timeout: 5.0}
+
+      on_go_home:
+        - {node: "ompl_joint_planner_", transition: "activate", timeout: 5.0}
+
+      on_go_home_complete:
+        - {node: "ompl_joint_planner_", transition: "deactivate", timeout: 5.0}
+
+      on_go_to_start:
+        - {node: "ompl_joint_planner_", transition: "activate", timeout: 5.0}
+
+      on_go_to_start_complete:
+        - {node: "ompl_joint_planner_", transition: "deactivate", timeout: 5.0}

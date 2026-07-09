@@ -1,11 +1,13 @@
 ---
-title: "Integration overview"
+title: "Connect over ROS 2"
 description: "What your robot publishes and subscribes to so it works with Sentinel."
 ---
 
-This section is for **integrating a robot we don't have a prebuilt adapter for**. If your hardware is on the [supported list](/hardware/supported), you don't need any of this — we send you a config and you [install and run](/installation). Otherwise, read on: you expose a few standard ROS 2 topics and we adapt Sentinel to them.
+This is **the primary way robots connect to Sentinel**: your robot speaks standard ROS 2 — a command topic in, a state topic out — and a config maps Sentinel onto your topics. No custom packages, no Sentinel code on your robot. If your hardware is on the [supported list](/hardware/supported), it's even less work: grab its ready-made config and [install and run](/installation).
 
-It covers what your robot publishes and subscribes to — the topics, message types, units, and rates. You can set this up and test it on your own before we connect anything.
+This section covers what your robot publishes and subscribes to — the topics, message types, units, and rates — and ends with a [pre-filled config](/integration/configuration) you copy and edit. You can set everything up and test it on your own with plain ROS 2 tools before connecting anything.
+
+Already running `ros2_control`? You're most of the way there: a stock forward position controller (or `joint_trajectory_controller`) plus your `/joint_states` stream is exactly the interface Sentinel drives.
 
 ## At a glance
 
@@ -49,14 +51,17 @@ You pick the topic names and we put them in your config. The message types, unit
   More than an arm? Mobile base, camera neck, hand, lift, and PTZ all work the same way — standard ROS 2 topics, with the exact messages settled with you. Got something not in the list? [Ask us on Slack](https://avea-robotics.slack.com) and we'll add it.
 </Note>
 
-## The two parts
+## The three steps
 
-<CardGroup cols={2}>
-  <Card title="Robot control interface" icon="robot" href="/integration/robot-adapter">
+<CardGroup cols={3}>
+  <Card title="1 · Robot control interface" icon="robot" href="/integration/robot-adapter">
     Arm, gripper, and base. Receiving commands and reporting joint state, with units and rates.
   </Card>
-  <Card title="Camera interface" icon="video" href="/integration/camera-adapter">
+  <Card title="2 · Camera interface" icon="video" href="/integration/camera-adapter">
     Streaming a camera feed to the headset over a standard image topic.
+  </Card>
+  <Card title="3 · Set up your config" icon="file-code" href="/integration/configuration">
+    Copy a pre-filled config for your robot's shape and fill in the marked fields.
   </Card>
 </CardGroup>
 

@@ -25,6 +25,15 @@
         ]
       },
       {
+        "group": "Connect your robot",
+        "pages": [
+          "integration/overview",
+          "integration/robot-adapter",
+          "integration/camera-adapter",
+          "integration/configuration"
+        ]
+      },
+      {
         "group": "Configuration",
         "pages": [
           "configuration/reference",
@@ -51,15 +60,6 @@
           "concepts/architecture",
           "concepts/state-machine",
           "concepts/controllers"
-        ]
-      },
-      {
-        "group": "Integrate your own adapter",
-        "pages": [
-          "integration/overview",
-          "integration/robot-adapter",
-          "integration/camera-adapter",
-          "integration/configuration"
         ]
       },
       {
