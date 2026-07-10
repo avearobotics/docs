@@ -6,7 +6,7 @@ description: "What the operator's VR controllers do, and how those actions map t
 The operator holds two VR controllers. Hand motion drives the arm, and the buttons run actions — arming, starting teleoperation, opening the gripper, marking recordings. This page covers the default mappings so you know what the operator can do.
 
 <Note>
-  Every button can be remapped — just ask. Mappings live in your config file, which we set up for you. The defaults below are a starting point. If you want a different button to arm the robot, start teleop, switch cameras, or run one of your own actions, tell us and we'll change it.
+  Every button can be remapped. Mappings live in your config file, and the defaults below are a starting point. If you want a different button to arm the robot, start teleop, switch cameras, or run one of your own actions, tell us and we'll change it.
 </Note>
 
 ## The controllers
@@ -69,7 +69,7 @@ flowchart LR
     style B fill:#d4d7ec,stroke:#383d66
 ```
 
-Let go and the arm stops following right away. This is the same thing as the [state machine](/concepts/state-machine): squeezing moves the robot to **teleop active**, releasing returns it to **armed**.
+Let go and the arm stops following right away. In [state machine](/concepts/state-machine) terms: squeezing moves the robot to **teleop active**, releasing returns it to **armed**.
 
 <Tip>
   On a dual-arm robot, each grip controls its own arm, and teleop stops when both are released. We set this up in your config.
@@ -98,7 +98,7 @@ A button can also run one of **your** robot's actions. If there's something you'
   <Card title="Robot control interface" icon="robot" href="/integration/robot-adapter">
     The messages for arm, gripper, and base commands.
   </Card>
-  <Card title="Your config file" icon="file-pen" href="/integration/configuration">
+  <Card title="Set up your config" icon="file-pen" href="/integration/configuration">
     Where button mappings and everything else are set up.
   </Card>
 </CardGroup>

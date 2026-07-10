@@ -3,7 +3,7 @@ title: "Connect over ROS 2"
 description: "What your robot publishes and subscribes to so it works with Sentinel."
 ---
 
-Most robots connect to Sentinel this way: your robot speaks standard ROS 2 — a command topic in, a state topic out — and a config maps Sentinel onto your topics. No custom packages and no Sentinel code on your robot. If your hardware is on the [supported list](/hardware/supported), there's nothing to integrate — grab its config and [install and run](/installation).
+Most robots connect to Sentinel this way: your robot speaks standard ROS 2 — a command topic in, a state topic out — and a config maps Sentinel onto your topics. No custom packages and no Sentinel code on your robot. If your hardware is on the [supported list](/hardware/supported), there's nothing to integrate — use its config and [install and run](/installation).
 
 This section covers what your robot publishes and subscribes to — the topics, message types, units, and rates. At the end you copy a [pre-filled config](/integration/configuration) and fill in the marked fields. You can set everything up and test it with plain ROS 2 tools before connecting anything.
 
@@ -48,7 +48,7 @@ flowchart LR
 You pick the topic names and we put them in your config. The message types, units, and rates below are fixed.
 
 <Note>
-  More than an arm? Mobile base, camera neck, hand, lift, and PTZ all work the same way — standard ROS 2 topics, with the exact messages settled with you. Got something not in the list? [Ask us on Slack](https://avea-robotics.slack.com) and we'll add it.
+  Mobile base, camera neck, hand, lift, and PTZ all work the same way — standard ROS 2 topics, with the exact messages settled with you. If your robot has something not listed, [ask us on Slack](https://avea-robotics.slack.com) and we'll add it.
 </Note>
 
 ## The three parts

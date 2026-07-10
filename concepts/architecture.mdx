@@ -3,9 +3,9 @@ title: "How Sentinel connects"
 description: "The parts of the system and how data moves between the operator and your robot."
 ---
 
-You don't need to know how Sentinel works inside. But knowing where your robot fits and what passes between the two sides makes the rest of these docs easy to follow.
+This page covers where your robot fits in the system and what passes between the two sides. You don't need to know how Sentinel works inside — this is the context the rest of these docs build on.
 
-## The big picture
+## Overview
 
 ```mermaid
 flowchart LR
@@ -33,7 +33,7 @@ flowchart LR
     style HW fill:#383d66,color:#fff,stroke:#252840
 ```
 
-The line that matters to you is between the **runtime** and **your controllers**. Everything to the left is Sentinel. Everything to the right is the robot you already build and run. The two sides talk over standard ROS 2 topics.
+The interface you integrate against is the line between the runtime and your controllers. Everything to the left is Sentinel; everything to the right is the robot you already build and run. The two sides talk over standard ROS 2 topics.
 
 ## The runtime
 
@@ -96,12 +96,12 @@ Sentinel treats your robot as a set of **capabilities** — separate things it c
   <Card title="PTZ camera" icon="camera-rotate">
     A pan-tilt-zoom camera the operator aims and zooms on its own.
   </Card>
-  <Card title="More — ask us" icon="puzzle-piece">
-    A hand, a lift, a tool changer, an extra sensor head? Tell us and we'll add it.
+  <Card title="Other" icon="puzzle-piece">
+    Hands, lifts, tool changers, extra sensor heads. Tell us and we'll add it.
   </Card>
 </CardGroup>
 
-A single arm, a dual-arm rig, a mobile manipulator, or a humanoid are just different sets of these capabilities. Tell us which ones your robot has and we turn them on in your config. If your robot does something not listed, [ask us on Slack](https://avea-robotics.slack.com) — we keep adding support.
+A single arm, a dual-arm rig, a mobile manipulator, and a humanoid are different sets of these capabilities. Enable the ones your robot has in your config. If your robot does something not listed, [ask us on Slack](https://avea-robotics.slack.com).
 
 ## Next
 

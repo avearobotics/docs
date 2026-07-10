@@ -61,7 +61,7 @@ You choose the topic names and we put them in your config. There's no required n
 | Gripper command | `/external/gripper/command` |
 | Base command | `/external/base/cmd_vel` |
 
-The runtime and your controllers run on the **same `ROS_DOMAIN_ID`**, so discovery just works — no bridges or extra plumbing.
+The runtime and your controllers run on the same `ROS_DOMAIN_ID`, so discovery works without extra setup.
 
 ## Arm: receiving commands
 
@@ -95,7 +95,7 @@ def on_command(msg: JointTrajectory):
 ```
 
 <Note>
-  Joint names come from your URDF, and ordering can be remapped — just ask. Sentinel reads your joint names from the URDF you give us, so the names you already use are the names in the messages. You don't rename or reorder anything to match Sentinel; we handle the mapping in your config, and the same applies to the `JointState` you publish back. If your names or order change, tell us and we update the config — no changes on your side. We'll walk through this with you during setup.
+  Sentinel reads your joint names from the URDF you give us, so the names you already use are the names in the messages. You don't rename or reorder anything to match Sentinel; we handle any mapping in your config, and the same applies to the `JointState` you publish back. If your names or order change, tell us and we update the config — no changes on your side.
 </Note>
 
 ### Forward position controllers
@@ -160,7 +160,7 @@ The runtime sends a normalized open/close command, and your config maps it to yo
 </Note>
 
 <Note>
-  Don't worry about the exact range or which message type to use — we pick those with you based on your gripper and put them in the config. You just read the topic and drive your gripper.
+  We pick the exact range and message type with you based on your gripper and put them in the config. Your controller reads the topic and drives the gripper.
 </Note>
 
 ## Mobile base
