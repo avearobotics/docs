@@ -100,18 +100,18 @@ def on_command(msg: JointTrajectory):
 
 ### Forward position controllers
 
-If your robot already runs a stock `ros2_control` forward position controller (`forward_position_controller` / `JointGroupPositionController`), you don't have to build anything: the runtime publishes `std_msgs/Float64MultiArray` setpoints straight onto your controller's `commands` topic, in your controller's configured joint order.
+If your robot runs a stock `ros2_control` forward position controller (`forward_position_controller` / `JointGroupPositionController`), there's nothing to build: the runtime publishes `std_msgs/Float64MultiArray` setpoints straight onto your controller's `commands` topic, in your controller's configured joint order.
 
-The array is nameless — element *i* commands joint *i* — so the slot order is agreed once and fixed in your config. Your controller chases the latest message at its own loop rate; the runtime smooths every command through per-joint velocity, acceleration, and jerk limits before publishing, so the setpoint stream is always step-bounded.
+The array is nameless — element *i* commands joint *i* — so the joint order is agreed once and fixed in your config. Your controller chases the latest message at its own loop rate. The runtime smooths every command through per-joint velocity, acceleration, and jerk limits before publishing, so consecutive setpoints are always close together.
 
-A few properties of this mode:
+In this mode:
 
 - **One array stream per controller.** A dual-arm robot with two forward position controllers gets two independent command topics.
-- **Uncommanded slots follow your reported state.** Slots the runtime hasn't commanded yet are filled from your last published `JointState`, so a command never yanks a joint it isn't driving.
-- **A gripper can ride in the array.** If your controller carries the gripper as one more slot of the arm array, see [Gripper](#gripper) below — no separate topic needed.
+- **Uncommanded slots follow your reported state.** Slots the runtime hasn't commanded yet are filled from your last published `JointState`, so a command never moves a joint it isn't driving.
+- **A gripper can ride in the array.** If your controller takes the gripper as one more slot of the arm array, see [Gripper](#gripper) below — no separate topic needed.
 
 <Warning>
-  In this mode your `JointState` stream matters twice: it's the runtime's safety feedback **and** the seed for uncommanded slots. Keep it steady, and make sure it covers every joint in the command array.
+  Your `JointState` stream does double duty here: it's the runtime's safety feedback and the seed for uncommanded slots. Keep it steady, and make sure it covers every joint in the command array.
 </Warning>
 
 ## Arm: reporting state

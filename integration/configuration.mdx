@@ -1,13 +1,13 @@
 ---
 title: "Set up your config"
-description: "Pick a pre-filled config for your robot's shape, edit the marked fields, and launch."
+description: "Pick a pre-filled config for your robot's shape, fill in the marked fields, and launch."
 ---
 
-Everything about how Sentinel works with your robot lives in one `robot.yaml`: which topics to use, your robot's kinematics, how motion is smoothed, safety limits, button mappings, and which cameras to stream.
+Everything about how Sentinel works with your robot lives in one config file: which topics to use, your robot's kinematics, how motion is smoothed, safety limits, button mappings, and which cameras to stream.
 
-You don't write it from scratch. Pick the template that matches your robot's shape, fill in the `<EDIT>` fields, and launch. The templates are complete, known-good files — every value you don't touch is a safe default.
+You don't write this file from scratch. Pick the template that matches your robot's shape, fill in the `<EDIT>` fields, and launch. The templates are complete files — every value you don't touch is a working default.
 
-## 1 · Pick your template
+## Pick a template
 
 <Tabs>
   <Tab title="Single arm + gripper">
@@ -17,7 +17,7 @@ You don't write it from scratch. Pick the template that matches your robot's sha
 
     <a href="/configs/ros2_single_arm.yaml" download>⬇ Download `ros2_single_arm.yaml`</a>
 
-    The heart of the file — where Sentinel meets your topics:
+    The part that maps Sentinel onto your topics:
 
     ```yaml
     bridge:
@@ -26,7 +26,7 @@ You don't write it from scratch. Pick the template that matches your robot's sha
           outputs:                                          # forward position controller
             - topic: "/forward_position_controller/commands"
               qos: "reliable"
-              joint_names: [joint_1, joint_2, joint_3,      # YOUR controller's
+              joint_names: [joint_1, joint_2, joint_3,      # your controller's
                             joint_4, joint_5, joint_6]      # configured joint order
         state:
           topic: "/joint_states"                            # must always be flowing
@@ -48,7 +48,7 @@ You don't write it from scratch. Pick the template that matches your robot's sha
 
     <a href="/configs/ros2_dual_arm.yaml" download>⬇ Download `ros2_dual_arm.yaml`</a>
 
-    The heart of the file:
+    The part that maps Sentinel onto your topics:
 
     ```yaml
     bridge:
@@ -80,12 +80,12 @@ You don't write it from scratch. Pick the template that matches your robot's sha
   Different shape — mobile base, neck, dexterous hand, elevator, PTZ? Start
   from the closest template; each extra capability is one more block in the
   `bridge:` section. [Ask us on Slack](https://avea-robotics.slack.com) and
-  we'll hand you the block for it.
+  we'll send you the block for it.
 </Note>
 
-## 2 · Fill in the `<EDIT>` fields
+## Fill in the marked fields
 
-Every field you must change is marked `<EDIT>` in the file. They come down to five things:
+Every field you need to change is marked `<EDIT>` in the file. There are five:
 
 <Steps>
   <Step title="License key">
@@ -95,13 +95,13 @@ Every field you must change is marked `<EDIT>` in the file. They come down to fi
     Point the `description:` block at your robot model — a latched `robot_description` topic, a `robot_state_publisher` parameter, or a file you mount. See [the control interface](/integration/robot-adapter#first-your-robot-description-urdf).
   </Step>
   <Step title="Topics and joint names">
-    Your command topic(s), your `/joint_states` topic, your camera topic(s), and your joint names exactly as they appear in your URDF. In forward-position mode the `joint_names` list under each output **must match your controller's configured joint order** — that list is the array's slot order.
+    Your command topic(s), your `/joint_states` topic, your camera topic(s), and your joint names exactly as they appear in your URDF. In forward-position mode the `joint_names` list under each output is the array's slot order, so it has to match your controller's configured joint order.
   </Step>
   <Step title="Joint limits and poses">
     `q_min`/`q_max` from your URDF, plus `home_positions`/`start_positions` — where "go home" sends the arm.
   </Step>
   <Step title="Gripper range">
-    The `mapping:` under the gripper block converts Sentinel's normalized 0 (closed) to 100 (open) into your gripper's real travel, so you never hard-code limits in your controller.
+    The `mapping:` under the gripper block converts Sentinel's normalized 0 (closed) to 100 (open) into your gripper's real travel, so you don't hard-code limits in your controller.
   </Step>
 </Steps>
 
@@ -111,11 +111,11 @@ Every field you must change is marked `<EDIT>` in the file. They come down to fi
   the command stream and lets a state-stream fault recover on re-arm.
 </Warning>
 
-## 3 · Launch and tune
+## Launch and tune
 
-Drop the file in as your `robot.yaml` and [install and run](/installation) the runtime. Bring-up order: confirm your joint state is flowing, **arm**, run a homing move, then **start teleoperation**.
+Drop the file in as your `robot.yaml` and [install and run](/installation) the runtime. Confirm your joint state is flowing, **arm** the robot, run a homing move, then **start teleoperation**.
 
-The motion sections (`trajectory:` limits, retargeting `scale`, IK weights) ship deliberately conservative — the robot will feel slow at first. That's intentional: the runtime smooths every command through those limits before it reaches your controller, so they're also your step-size guard. We tune them with you during bring-up until tracking feels right.
+The motion sections (`trajectory:` limits, retargeting `scale`, IK weights) ship conservative, so the robot feels slow at first. The runtime smooths every command through those limits before it reaches your controller, and we raise them with you during bring-up until tracking feels right.
 
 <Tip>
   The config isn't frozen. When we tune motion, adjust limits, remap a button,
@@ -127,6 +127,6 @@ The motion sections (`trajectory:` limits, retargeting `scale`, IK weights) ship
 
 <Card title="Have us review your config" icon="slack" href="https://avea-robotics.slack.com" horizontal>
   Send us your filled-in config before first power-on. Joint limits, workspace
-  bounds, and motion smoothing are safety-relevant — a five-minute review
-  catches what a launch won't.
+  bounds, and motion smoothing are safety-relevant, and a review takes a few
+  minutes.
 </Card>
