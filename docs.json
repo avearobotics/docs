@@ -37,8 +37,7 @@
         "group": "Configuration",
         "pages": [
           "configuration/reference",
-          "configuration/examples",
-          "configuration/advanced-docker"
+          "configuration/examples"
         ]
       },
       {
