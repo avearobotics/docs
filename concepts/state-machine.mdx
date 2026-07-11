@@ -3,9 +3,7 @@ title: "The state machine"
 description: "When your robot is powered, when it's armed, and when commands reach your motors."
 ---
 
-Sentinel always knows what mode your robot is in, and that mode decides whether commands reach your motors. This answers the main question you'll have when setting up your robot: **when should it act on commands?**
-
-The short answer: **only during teleoperation.** In every other mode your robot holds still, even when it's powered and ready.
+Sentinel always knows what mode your robot is in, and that mode decides whether commands reach your motors. Your robot acts on commands only during teleoperation — in every other mode it holds still, even when powered and ready.
 
 ## The states
 
@@ -40,8 +38,6 @@ stateDiagram-v2
 | **E‑stop** | Emergency stop. All motion halts at once. | No — stopped |
 
 ## Armed vs. teleoperating
-
-This is the part to get right.
 
 <CardGroup cols={2}>
   <Card title="Armed" icon="circle-pause">

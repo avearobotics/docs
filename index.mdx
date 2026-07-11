@@ -24,20 +24,20 @@ The whole system is driven by a single `robot.yaml` — cameras, controls, robot
 
 ## Setup paths
 
-- **Supported hardware** runs from a ready-made config. Install the runtime, add the `robot.yaml`, and drive. See [Installation](/installation) and the [supported hardware list](/hardware/supported).
-- **Other robots** connect over standard ROS 2 — expose a few topics and map them in the config. See [Integrate your own adapter](/integration/overview).
+- **Robots that speak ROS 2** connect over a few standard topics — most `ros2_control` setups already expose them. Copy a pre-filled config and fill in the marked fields. See [Connect over ROS 2](/integration/overview).
+- **Supported hardware** runs from a ready-made config with nothing to integrate. Install the runtime, add the `robot.yaml`, and drive. See [Installation](/installation) and the [supported hardware list](/hardware/supported).
 
 ## Next steps
 
 <CardGroup cols={2}>
+  <Card title="Connect over ROS 2" icon="robot" href="/integration/overview">
+    The topics your robot exposes and the pre-filled config that maps them.
+  </Card>
   <Card title="Installation" icon="rocket" href="/installation">
     Install the runtime and drive your robot.
   </Card>
   <Card title="Configuration reference" icon="gears" href="/configuration/reference">
     Every section of `robot.yaml`.
-  </Card>
-  <Card title="Concepts" icon="diagram-project" href="/concepts/architecture">
-    How the runtime, cloud, and robot fit together.
   </Card>
   <Card title="Using your data" icon="database" href="/data/using-your-data">
     Recorded session layout and message formats.

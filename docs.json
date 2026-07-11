@@ -25,11 +25,19 @@
         ]
       },
       {
+        "group": "Connect your robot",
+        "pages": [
+          "integration/overview",
+          "integration/robot-adapter",
+          "integration/camera-adapter",
+          "integration/configuration"
+        ]
+      },
+      {
         "group": "Configuration",
         "pages": [
           "configuration/reference",
-          "configuration/examples",
-          "configuration/advanced-docker"
+          "configuration/examples"
         ]
       },
       {
@@ -51,15 +59,6 @@
           "concepts/architecture",
           "concepts/state-machine",
           "concepts/controllers"
-        ]
-      },
-      {
-        "group": "Integrate your own adapter",
-        "pages": [
-          "integration/overview",
-          "integration/robot-adapter",
-          "integration/camera-adapter",
-          "integration/configuration"
         ]
       },
       {

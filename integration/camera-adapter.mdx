@@ -3,9 +3,9 @@ title: "Camera interface"
 description: "Stream a camera feed to the operator's headset over a standard ROS 2 image topic."
 ---
 
-The operator drives your robot by looking through its cameras. To stream a feed, you publish a compressed image on a ROS 2 topic and the runtime forwards it to the headset. That's it.
+The operator drives your robot by looking through its cameras. To stream a feed, you publish a compressed image on a ROS 2 topic and the runtime forwards it to the headset.
 
-If your camera already publishes to ROS 2 — most do — this is often just pointing us at a topic you already have.
+If your camera already publishes to ROS 2 — most do — you point us at the topic you already have.
 
 ## The flow
 
@@ -30,7 +30,7 @@ You publish, the runtime subscribes and streams it. Video is one-way — the run
 | Rate | Whatever you publish — **30 fps is typical**, steady is what matters |
 | QoS | Best-effort (dropping a frame is fine; latency is not) |
 
-The frame rate and resolution are simply whatever your camera publishes — the runtime adapts. A steady ~30 fps gives a smooth operator view; higher is fine if your camera and network support it.
+The frame rate and resolution are whatever your camera publishes — the runtime adapts. A steady ~30 fps gives a smooth operator view; higher is fine if your camera and network support it.
 
 ```python
 # Conceptual — publish JPEG frames on a topic
@@ -42,15 +42,15 @@ publisher.publish(msg)
 ```
 
 <Note>
-  Most ROS 2 cameras can publish a `CompressedImage` already (often a `.../compressed` topic). If yours does, integration is just telling us the topic name. If it only publishes raw images, a standard ROS 2 compression node gets you there.
+  Most ROS 2 cameras can publish a `CompressedImage` already (often a `.../compressed` topic). If yours does, tell us the topic name. If it only publishes raw images, a standard ROS 2 compression node gets you there.
 </Note>
 
 ## Or let Sentinel open the camera
 
 If the camera is plugged into the Sentinel computer (USB / UVC, Intel RealSense, or
-ZED), you don't have to publish anything yourself — **Sentinel can open the camera
-directly, capture and encode it, and publish the video topics for you.** You just
-tell us the camera in your config; we handle capture and encoding.
+ZED), you don't have to publish anything yourself — Sentinel opens the camera
+directly, captures and encodes it, and publishes the video topics for you. Name
+the camera in your config; we handle capture and encoding.
 
 |  | Publish it yourself | Let Sentinel open it |
 | --- | --- | --- |
@@ -107,6 +107,6 @@ Tell us how many cameras you have and what each one is for; we wire them into yo
 
 ## Next
 
-<Card title="Your config file" icon="file-pen" href="/integration/configuration" horizontal>
-  How your topics, joints, and cameras come together into a working setup.
+<Card title="Set up your config" icon="file-pen" href="/integration/configuration" horizontal>
+  Copy a pre-filled config for your robot's shape and fill in the marked fields.
 </Card>
