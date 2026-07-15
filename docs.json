@@ -17,48 +17,9 @@
   "navigation": {
     "pages": [
       {
-        "group": "Get started",
+        "group": "Platform",
         "pages": [
-          "index",
-          "quickstart",
-          "installation"
-        ]
-      },
-      {
-        "group": "Connect your robot",
-        "pages": [
-          "integration/overview",
-          "integration/robot-adapter",
-          "integration/camera-adapter",
-          "integration/configuration"
-        ]
-      },
-      {
-        "group": "Configuration",
-        "pages": [
-          "configuration/reference",
-          "configuration/examples"
-        ]
-      },
-      {
-        "group": "Hardware",
-        "pages": [
-          "hardware/supported",
-          "hardware/immersive-neck"
-        ]
-      },
-      {
-        "group": "Your data",
-        "pages": [
-          "data/using-your-data"
-        ]
-      },
-      {
-        "group": "Concepts",
-        "pages": [
-          "concepts/architecture",
-          "concepts/state-machine",
-          "concepts/controllers"
+          "index"
         ]
       },
       {

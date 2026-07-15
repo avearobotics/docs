@@ -1,45 +1,49 @@
 ---
-title: "Sentinel"
-sidebarTitle: "Introduction"
-description: "Teleoperate a robot from a VR headset and record the sessions as training data."
+title: "What is Sentinel"
+description: "Sentinel is the platform for putting robots to work."
 ---
 
-Sentinel is a container-based runtime for robot teleoperation. An operator in a VR headset drives a robot in real time — reaching, grasping, looking around, and moving — while each session is recorded as training data. The operator sees through the robot's cameras and moves it with their hands.
+Sentinel is the platform for putting robots to work.
 
-## How it works
+You bring a robot. Sentinel gives you everything around it: a way to drive it, the people who operate it, the data it produces, and the tools to run a growing fleet.
 
-The runtime runs on a computer near the robot. It converts the operator's hand motion into joint commands, drives the gripper and base, points the cameras, and streams video back to the headset. It sits between the headset and cloud and the robot's control interface.
+## Start with teleoperation
 
-```mermaid
-flowchart LR
-    H["🥽 VR headset<br/>(operator)"] <--> C["☁️ Sentinel cloud"]
-    C <--> R["⚙️ Sentinel runtime"]
-    R <-->|"robot interface"| Y["🤖 Robot"]
+Everything begins with a person driving a robot.
 
-    style Y fill:#383d66,color:#fff,stroke:#252840
-    style R fill:#d4d7ec,stroke:#383d66,color:#000
-```
+Sentinel runs on the computer next to your robot. One file tells it what your robot can do. From there, an operator puts on a headset and drives — in the same room, or on the other side of the world. What they see is live. Not video-call live, actually live.
 
-The whole system is driven by a single `robot.yaml` — cameras, controls, robot capabilities, safety limits, and streaming all live there. See the [configuration reference](/configuration/reference).
+## Grow into an operation
 
-## Setup paths
+Deploying a robot is a journey, and most teams walk the same path.
 
-- **Robots that speak ROS 2** connect over a few standard topics — most `ros2_control` setups already expose them. Copy a pre-filled config and fill in the marked fields. See [Connect over ROS 2](/integration/overview).
-- **Supported hardware** runs from a ready-made config with nothing to integrate. Install the runtime, add the `robot.yaml`, and drive. See [Installation](/installation) and the [supported hardware list](/hardware/supported).
+1. Teleoperate. Drive the robot in person. Try tasks. Learn what is actually doable.
+2. Collect. Operators run tasks remotely. Every session they run is already a dataset, labeled and ready for training.
+3. Automate. Models take over the routine work. People watch, step in when something needs a hand, and every intervention makes the next model better.
+4. Scale. More robots, more operators, one place to see all of it.
 
-## Next steps
+Sentinel is built so that moving to the next stage never means switching platforms. The robot you teleoperate on day one is the robot your models run on later.
 
-<CardGroup cols={2}>
-  <Card title="Connect over ROS 2" icon="robot" href="/integration/overview">
-    The topics your robot exposes and the pre-filled config that maps them.
-  </Card>
-  <Card title="Installation" icon="rocket" href="/installation">
-    Install the runtime and drive your robot.
-  </Card>
-  <Card title="Configuration reference" icon="gears" href="/configuration/reference">
-    Every section of `robot.yaml`.
-  </Card>
-  <Card title="Using your data" icon="database" href="/data/using-your-data">
-    Recorded session layout and message formats.
-  </Card>
-</CardGroup>
+## Three ways to control a robot
+
+Every robot on Sentinel can be controlled from three directions.
+
+- From your code. Your robot speaks ROS 2, and Sentinel maps onto the topics you already publish.
+- By a person. Operators connect from a headset and drive with their hands.
+- Over the network. An HTTPS call can arm a robot, start a session, or send it home.
+
+Whichever surface you use, it is the same robot, the same state machine, and the same safety rules underneath.
+
+## What runs where
+
+Sentinel is three pieces.
+
+The runtime runs on the computer next to your robot. It talks to your hardware, streams video, records data, and enforces safety. It is one container and one config file.
+
+The cloud connects everyone. It knows your robots, your operators, and your sessions, and it carries the connection between them.
+
+The operator app runs on a headset. Today that means a Meta Quest 3. An operator signs in, picks a robot, and drives.
+
+## Where these docs go from here
+
+The rest of the docs follow the same path you will: connect your robot, operate it, use your data, then automate and scale. Start with connecting your robot, and read the concepts section whenever a term deserves a closer look.
