@@ -1,0 +1,72 @@
+---
+title: "Your first VR session"
+description: "Safely connect to a robot, arm it, teleoperate, and end the session."
+---
+
+This guide covers the operator's first complete session. At the end, you will have moved the robot in VR and returned it to a safe state.
+
+## Before you enter VR
+
+- Clear the robot's workspace.
+- Confirm the physical emergency stop works and remains reachable.
+- Check that the runtime reports robot state and camera streams.
+- Start with conservative speed, motion, and workspace limits.
+- Assign one person to watch the physical robot during first bring-up.
+
+## Run the session
+
+<Steps>
+  <Step title="Open Sentinel in the headset">
+    Open [Sentinel XR Teleoperation](https://app.avearobotics.com) on a Meta Quest 3 or 3S and sign in.
+  </Step>
+
+  <Step title="Choose the robot">
+    Select the robot you registered. Wait for its state and camera feeds to appear before continuing.
+  </Step>
+
+  <Step title="Arm the robot">
+    Use the configured arm action. The robot may move to its start pose. Keep both controllers still and watch the physical robot throughout the transition.
+  </Step>
+
+  <Step title="Start teleoperation">
+    Squeeze and hold the configured grip control. Move slowly. The arm follows while the grip is held.
+  </Step>
+
+  <Step title="Pause motion">
+    Release the grip. Teleoperation stops and the robot should hold position. Confirm this behavior before attempting a task.
+  </Step>
+
+  <Step title="Record an episode">
+    Start recording, complete one short task, and stop recording. Discard the episode if the task or setup was invalid.
+  </Step>
+
+  <Step title="End safely">
+    Stop teleoperation, return the robot home if appropriate, disarm it, and confirm it is in a safe idle state before removing the headset.
+  </Step>
+</Steps>
+
+## Default controls
+
+| Control | Default behavior |
+| --- | --- |
+| Grip | Hold to teleoperate; release to stop teleoperation |
+| Trigger | Open or close the gripper |
+| A, single press | Arm and move to the configured start pose |
+| A, long press | Move to the configured home pose |
+| X, single press | Start or stop recording |
+| Y, single press | Discard or flag the current recording |
+| Menu | Emergency stop |
+
+Mappings can differ by robot and config. See [Controllers and buttons](/concepts/controllers) for the configured control model.
+
+<Warning>
+  Use the physical emergency stop for any unexpected motion. Do not depend on the headset or network connection as the only way to stop a robot.
+</Warning>
+
+## What happened under the hood
+
+The runtime remained connected to the robot, received motion from the headset, applied the configured retargeting and safety limits, and sent commands only while teleoperation was active. If recording was enabled, it also wrote an episode containing robot state, commands, video, and system events.
+
+<Card title="Collect and use your first episode" icon="database" href="/data/overview" horizontal>
+  Learn what Sentinel records and how tasks, subtasks, outcomes, and evals fit into the data loop.
+</Card>

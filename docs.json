@@ -17,7 +17,7 @@
   "navigation": {
     "pages": [
       {
-        "group": "Get started",
+        "group": "Start here",
         "pages": [
           "index",
           "quickstart",
@@ -25,8 +25,17 @@
         ]
       },
       {
-        "group": "Connect your robot",
+        "group": "Operate",
         "pages": [
+          "operate/first-session",
+          "concepts/controllers",
+          "concepts/state-machine"
+        ]
+      },
+      {
+        "group": "Connect a robot",
+        "pages": [
+          "hardware/supported",
           "integration/overview",
           "integration/robot-adapter",
           "integration/camera-adapter",
@@ -34,36 +43,26 @@
         ]
       },
       {
-        "group": "Configuration",
+        "group": "Data and evals",
         "pages": [
-          "configuration/reference",
-          "configuration/examples"
+          "data/overview",
+          "data/using-your-data",
+          "autonomy/overview"
         ]
       },
       {
-        "group": "Hardware",
+        "group": "Build with Sentinel",
         "pages": [
-          "hardware/supported",
-          "hardware/immersive-neck"
+          "platform/overview"
         ]
       },
       {
-        "group": "Your data",
-        "pages": [
-          "data/using-your-data"
-        ]
-      },
-      {
-        "group": "Concepts",
+        "group": "Reference",
         "pages": [
           "concepts/architecture",
-          "concepts/state-machine",
-          "concepts/controllers"
-        ]
-      },
-      {
-        "group": "Changelog",
-        "pages": [
+          "configuration/reference",
+          "configuration/examples",
+          "hardware/immersive-neck",
           "changelog"
         ]
       }
@@ -76,14 +75,18 @@
   "navbar": {
     "links": [
       {
-        "label": "Talk to us on Slack",
+        "label": "Dashboard",
+        "href": "https://dashboard.avearobotics.com"
+      },
+      {
+        "label": "Talk to us",
         "href": "https://avea-robotics.slack.com"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Start integration",
-      "href": "https://avea-robotics.slack.com"
+      "label": "Get started",
+      "href": "/quickstart"
     }
   },
   "contextual": {

@@ -1,45 +1,86 @@
 ---
 title: "Sentinel"
-sidebarTitle: "Introduction"
-description: "Teleoperate a robot from a VR headset and record the sessions as training data."
+sidebarTitle: "What is Sentinel?"
+description: "Operate robots from anywhere, collect useful data, and build toward autonomy."
 ---
 
-Sentinel is a container-based runtime for robot teleoperation. An operator in a VR headset drives a robot in real time — reaching, grasping, looking around, and moving — while each session is recorded as training data. The operator sees through the robot's cameras and moves it with their hands.
+# Operate robots today. Build autonomy over time.
 
-## How it works
+Sentinel is the operations and autonomy platform for real-world robots. Use it to control robots remotely in VR, collect structured data, understand how each run performed, and bring a person in when autonomy needs help.
 
-The runtime runs on a computer near the robot. It converts the operator's hand motion into joint commands, drives the gripper and base, points the cameras, and streams video back to the headset. It sits between the headset and cloud and the robot's control interface.
+You can start with one operator and one robot. As your system grows, Sentinel adds observability, evals, APIs, dispatching, and fleet operations around the same workflow.
+
+<Card title="Get a robot running" icon="rocket" href="/quickstart" horizontal>
+  Choose a supported robot or connect your own over ROS 2, then complete your first VR session.
+</Card>
+
+## The Sentinel loop
 
 ```mermaid
 flowchart LR
-    H["🥽 VR headset<br/>(operator)"] <--> C["☁️ Sentinel cloud"]
-    C <--> R["⚙️ Sentinel runtime"]
-    R <-->|"robot interface"| Y["🤖 Robot"]
+    A["Connect"] --> B["Operate"]
+    B --> C["Collect"]
+    C --> D["Evaluate"]
+    D --> E["Intervene"]
+    E --> F["Improve"]
+    F --> D
 
-    style Y fill:#383d66,color:#fff,stroke:#252840
-    style R fill:#d4d7ec,stroke:#383d66,color:#000
+    style A fill:#d4d7ec,stroke:#383d66,color:#000
+    style B fill:#383d66,stroke:#252840,color:#fff
+    style D fill:#d4d7ec,stroke:#383d66,color:#000
 ```
 
-The whole system is driven by a single `robot.yaml` — cameras, controls, robot capabilities, safety limits, and streaming all live there. See the [configuration reference](/configuration/reference).
+- **Connect:** use a first-class integration or map your ROS 2 interfaces.
+- **Operate:** see through the robot's cameras and control it from a VR headset.
+- **Collect:** record episodes with robot state, commands, video, and metadata.
+- **Evaluate:** run a person or policy through the same task and measure the result.
+- **Intervene:** let an operator label, correct, or take over a failed rollout.
+- **Improve:** use the resulting data in your training pipeline and try again.
 
-## Setup paths
+Today, Sentinel's strongest path is remote operation and structured data collection. Evals, failure routing, and deeper automation are being built on top of that foundation.
 
-- **Robots that speak ROS 2** connect over a few standard topics — most `ros2_control` setups already expose them. Copy a pre-filled config and fill in the marked fields. See [Connect over ROS 2](/integration/overview).
-- **Supported hardware** runs from a ready-made config with nothing to integrate. Install the runtime, add the `robot.yaml`, and drive. See [Installation](/installation) and the [supported hardware list](/hardware/supported).
-
-## Next steps
+## Choose your path
 
 <CardGroup cols={2}>
-  <Card title="Connect over ROS 2" icon="robot" href="/integration/overview">
-    The topics your robot exposes and the pre-filled config that maps them.
+  <Card title="I have a supported robot" icon="robot" href="/hardware/supported">
+    Start with a tested integration and ready-made configuration.
   </Card>
-  <Card title="Installation" icon="rocket" href="/installation">
-    Install the runtime and drive your robot.
+  <Card title="I have a ROS 2 robot" icon="diagram-project" href="/integration/overview">
+    Connect standard command, state, and camera interfaces.
   </Card>
-  <Card title="Configuration reference" icon="gears" href="/configuration/reference">
-    Every section of `robot.yaml`.
+  <Card title="I will operate robots" icon="vr-cardboard" href="/operate/first-session">
+    Learn the VR controls and complete a safe first session.
   </Card>
-  <Card title="Using your data" icon="database" href="/data/using-your-data">
-    Recorded session layout and message formats.
+  <Card title="I am building a platform" icon="code" href="/platform/overview">
+    See how provisioning, operations, data, eval, and fleet APIs fit together.
+  </Card>
+</CardGroup>
+
+## One platform, three stages
+
+<CardGroup cols={3}>
+  <Card title="Operate" icon="hand">
+    Connect a robot, control it in VR, and see its state from the dashboard.
+  </Card>
+  <Card title="Improve" icon="chart-line">
+    Collect episodes, label subtasks and outcomes, and evaluate human or policy performance.
+  </Card>
+  <Card title="Scale" icon="layer-group">
+    Supervise fleets, dispatch failures, and automate operations through APIs.
+  </Card>
+</CardGroup>
+
+## Product status
+
+<Note>
+  These docs distinguish between features you can use now and workflows we are designing with customers. Pages marked **Coming soon** describe intended product direction, not currently available functionality.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Start with teleoperation" icon="circle-play" href="/quickstart">
+    Install Sentinel and drive a robot in VR.
+  </Card>
+  <Card title="Explore human-in-the-loop autonomy" icon="wand-magic-sparkles" href="/autonomy/overview">
+    See the eval and intervention workflow we are building.
   </Card>
 </CardGroup>

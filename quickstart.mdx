@@ -1,57 +1,86 @@
 ---
-title: "Quickstart"
-description: "From a config to driving a robot in VR."
+title: "Get started"
+description: "Choose your setup path and complete your first Sentinel session."
 ---
 
-Sentinel runs as a container on a computer near the robot, driven by a single `robot.yaml`. The path from zero to driving:
+This guide takes you from a robot to a safe VR teleoperation session. You will connect the robot, run the Sentinel runtime, verify its state, and start operating.
 
-```mermaid
-flowchart TD
-    A["1 · Get a config"] --> B["2 · Install the runtime"]
-    B --> C["3 · Bring it up<br/>arm, home, teleop"]
-    C --> D["4 · Drive and record 🎉"]
-
-    style A fill:#d4d7ec,stroke:#383d66
-    style D fill:#383d66,color:#fff,stroke:#252840
-```
-
-## Steps
-
-<Steps>
-  <Step title="Get a config for your robot">
-    Robots that speak ROS 2 start from a pre-filled template — pick your robot's shape and fill in the marked fields: [Set up your config](/integration/configuration). Supported hardware has ready-made configs — see [Example configs](/configuration/examples). The [configuration reference](/configuration/reference) explains every section.
-  </Step>
-
-  <Step title="Install the runtime">
-    Install the prerequisites and launch the container with your config on a computer near the robot. See [Installation](/installation).
-  </Step>
-
-  <Step title="Bring it up">
-    Confirm joint state is flowing, **arm** the robot, run a homing move, then **start teleoperation** (the operator squeezes the grip). Tune limits and motion smoothing as needed.
-  </Step>
-
-  <Step title="Drive and record">
-    The operator puts on the headset and drives. Each session records to MCAP for training — see [Using your data](/data/using-your-data).
-  </Step>
-</Steps>
-
-## Concepts worth reading first
+## Choose your setup path
 
 <CardGroup cols={2}>
-  <Card title="Architecture" icon="diagram-project" href="/concepts/architecture">
-    The runtime, the cloud, and where the robot fits.
+  <Card title="Supported robot" icon="bolt" href="/hardware/supported">
+    Use a tested integration and a ready-made `robot.yaml`. This is the shortest path.
   </Card>
-  <Card title="State machine" icon="diagram-predecessor" href="/concepts/state-machine">
-    **Armed** vs **teleoperating**, and when commands reach the motors.
-  </Card>
-  <Card title="Controllers and buttons" icon="gamepad" href="/concepts/controllers">
-    What the operator's buttons do, and how teleop starts and stops.
-  </Card>
-  <Card title="Configuration reference" icon="gears" href="/configuration/reference">
-    Every section of `robot.yaml`.
+  <Card title="ROS 2 robot" icon="diagram-project" href="/integration/overview">
+    Map your existing command, joint-state, and camera topics to Sentinel.
   </Card>
 </CardGroup>
 
-<Tip>
-  Stuck mapping something to your robot? Reach the team on [Slack](https://avea-robotics.slack.com).
-</Tip>
+If your hardware is on the supported list, you do not need to build an adapter. If it is not, most ROS 2 robots connect through standard topics without running Sentinel code inside the robot controller.
+
+## Before you start
+
+- A supported computer running Ubuntu 22.04 or 24.04
+- Docker and the required NVIDIA runtime for your platform
+- A Meta Quest 3 or 3S
+- A clear robot workspace and access to the robot's emergency stop
+- A Sentinel account, registered robot, and license key
+- A ready-made or completed `robot.yaml`
+
+See [Installation](/installation) for the current compute, storage, and software requirements.
+
+## From setup to operation
+
+<Steps>
+  <Step title="Connect your robot">
+    For supported hardware, download the matching [example config](/configuration/examples). For another ROS 2 robot, complete the [ROS 2 connection guide](/integration/overview) and verify your command, state, and camera topics with standard ROS 2 tools.
+  </Step>
+
+  <Step title="Register the robot">
+    Add the robot in the [Sentinel dashboard](https://dashboard.avearobotics.com/dashboard/robots), generate its license key, and place the key in `system.license_key` in `robot.yaml`.
+  </Step>
+
+  <Step title="Install and launch Sentinel">
+    Follow [Installation](/installation) to install the prerequisites and start the runtime with your config. Keep the terminal visible during the first run so you can see connection and safety errors.
+  </Step>
+
+  <Step title="Verify the robot is ready">
+    Confirm the runtime sees robot state and the expected cameras. The robot should remain disarmed and still. Fix missing state, incorrect joint names, or camera errors before continuing.
+  </Step>
+
+  <Step title="Complete your first VR session">
+    Put on the headset, choose the robot, arm it, and start teleoperation only after the workspace is clear. Follow [Your first session](/operate/first-session) for the control and safety sequence.
+  </Step>
+
+  <Step title="Record one episode">
+    Start a short recording, perform one task, then stop the recording. Sentinel stores the episode locally as MCAP with robot state, commands, camera streams, and system events. See [Collect data](/data/overview).
+  </Step>
+</Steps>
+
+## You are done when
+
+- Robot state and cameras appear without errors.
+- The robot stays still until you deliberately arm and begin teleoperation.
+- Releasing the controller grip stops teleoperation and holds the robot safely.
+- A recorded episode appears in the local dataset directory.
+
+<Warning>
+  Treat first motion as a bring-up procedure. Keep the workspace clear, stay within reach of the physical emergency stop, begin at conservative speed and limits, and confirm the robot's hold behavior before attempting a task.
+</Warning>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Collect structured data" icon="database" href="/data/overview">
+    Understand sessions, episodes, outcomes, and the path to task metadata.
+  </Card>
+  <Card title="Connect another robot" icon="robot" href="/integration/overview">
+    Use the generic ROS 2 interface for unsupported hardware.
+  </Card>
+  <Card title="Explore evals" icon="chart-simple" href="/autonomy/overview">
+    See the coming human-in-the-loop eval workflow.
+  </Card>
+  <Card title="Build with Sentinel" icon="code" href="/platform/overview">
+    Learn how the API platform is expanding beyond individual actions.
+  </Card>
+</CardGroup>
