@@ -1,0 +1,40 @@
+---
+title: "Tasks, subtasks, and labels"
+description: "Structure and label robot data while you collect it."
+---
+
+Sentinel records task context with the robot data collected during a session. Add the structure during collection so downstream tools can identify what the operator attempted and what happened.
+
+## Tasks and subtasks
+
+A **task** describes the overall objective, such as loading a dishwasher.
+
+A **subtask** describes one part of that objective, such as picking up a plate or placing it in the rack. A task can contain any number of subtasks.
+
+During collection, the operator selects the active task and advances through its subtasks. Sentinel records the active task and subtask with the episode.
+
+## Episode labels
+
+Apply the available outcome labels before moving to the next episode. Labels let you separate successful attempts, failed attempts, and other collection outcomes without reconstructing them later from video.
+
+Use consistent task names and label criteria across operators. Decide what counts as success before a collection run begins.
+
+<Tip>
+  Keep subtasks observable. “Grasp the handle” is easier to label consistently than “prepare to open the door.”
+</Tip>
+
+## Recorded context
+
+A recorded episode includes the robot data and the collection context associated with it, including:
+
+- Session and operator attribution
+- Task and subtask markers
+- Episode outcome labels
+- Robot commands and state
+- Camera data configured for recording
+
+## Next step
+
+<Card title="Use the recorded dataset" icon="database" href="/operate/datasets" horizontal>
+  Understand the dataset output and where its labels come from.
+</Card>

@@ -1,0 +1,151 @@
+---
+title: "I2RT adapter example"
+description: "Wrap an I2RT-controlled arm with the ROS 2 topics Sentinel expects."
+---
+
+This example keeps the I2RT hardware loop in a small ROS 2 node. The node publishes measured `JointState` continuously and accepts named `JointTrajectory` commands from Sentinel.
+
+The same pattern works for other Python SDKs: initialize the hardware once, publish measured state on a timer, and convert each incoming command into the SDK's native call.
+
+<Warning>
+  Test this node without Sentinel first. The subscriber commands physical hardware. Add the limits, watchdog, fault handling, and emergency-stop integration required by your robot before use.
+</Warning>
+
+## Adapter node
+
+```python
+#!/usr/bin/env python3
+import numpy as np
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
+from sensor_msgs.msg import JointState
+from trajectory_msgs.msg import JointTrajectory
+
+from i2rt.robots.get_robot import get_yam_robot
+from i2rt.robots.utils import GripperType
+
+
+JOINT_NAMES = [f"joint{i}" for i in range(1, 7)]
+
+
+class I2RTRosAdapter(Node):
+    def __init__(self):
+        super().__init__("i2rt_ros_adapter")
+
+        self.robot = get_yam_robot(
+            channel="can0",
+            gripper_type=GripperType.NO_GRIPPER,
+            zero_gravity_mode=False,
+        )
+
+        self.state_pub = self.create_publisher(
+            JointState,
+            "/yam/joint_states",
+            qos_profile_sensor_data,
+        )
+        self.command_sub = self.create_subscription(
+            JointTrajectory,
+            "/yam/joint_trajectory",
+            self.on_command,
+            10,
+        )
+        self.state_timer = self.create_timer(1.0 / 120.0, self.publish_state)
+
+    def publish_state(self):
+        observation = self.robot.get_observations()
+
+        msg = JointState()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.name = JOINT_NAMES
+        msg.position = observation["joint_pos"][:6].tolist()
+        msg.velocity = observation["joint_vel"][:6].tolist()
+        msg.effort = observation["joint_eff"][:6].tolist()
+        self.state_pub.publish(msg)
+
+    def on_command(self, msg: JointTrajectory):
+        if not msg.points:
+            return
+
+        positions_by_name = dict(zip(msg.joint_names, msg.points[-1].positions))
+        if any(name not in positions_by_name for name in JOINT_NAMES):
+            self.get_logger().error("Command does not contain every arm joint")
+            return
+
+        target = np.array(
+            [positions_by_name[name] for name in JOINT_NAMES],
+            dtype=np.float64,
+        )
+        self.robot.command_joint_pos(target)
+
+    def destroy_node(self):
+        self.robot.close()
+        super().destroy_node()
+
+
+def main():
+    rclpy.init()
+    node = I2RTRosAdapter()
+    try:
+        rclpy.spin(node)
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Sentinel topic mapping
+
+Map the generic robot adapter to those topics:
+
+```yaml
+adapters:
+  - id: arm
+    plugin: sentinel_adapter_ros2_bridge::Ros2BridgeAdapter
+    description:
+      source: file
+      path: package://your_robot_description/urdf/yam.urdf
+    bridge:
+      manipulator:
+        enabled: true
+        capability_id: arm
+        command:
+          topic: /yam/joint_trajectory
+          qos: reliable
+        state:
+          topic: /yam/joint_states
+          qos: sensor
+          stale_timeout_s: 0.5
+```
+
+The current generic adapter and this node must run in the same `ROS_DOMAIN_ID`.
+
+## Validate it
+
+<Steps>
+  <Step title="Start the hardware adapter">
+    Keep the robot disarmed or in its validated safe test mode.
+  </Step>
+  <Step title="Confirm measured state">
+    Run `ros2 topic hz /yam/joint_states` and verify that all six joint names are present.
+  </Step>
+  <Step title="Test a named command">
+    Send a small `JointTrajectory` command in a cleared workspace. Do not publish an unnamed position array.
+  </Step>
+  <Step title="Test command loss">
+    Stop the publisher and confirm that the hardware follows the robot's validated hold or stop behavior.
+  </Step>
+</Steps>
+
+## Production work still required
+
+The example shows the ROS boundary, not a complete safety controller. A production adapter should add:
+
+- Joint-limit and velocity validation before `command_joint_pos`
+- A command watchdog
+- Hardware fault propagation
+- Gripper mapping when the robot has a gripper
+- Lifecycle or controller-manager integration when that support is released

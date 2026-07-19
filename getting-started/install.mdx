@@ -1,0 +1,183 @@
+---
+title: "Install Sentinel"
+description: "Install the Sentinel runtime and launcher on the robot computer."
+---
+
+The Sentinel runtime runs as a container on the computer connected to your robot. This page installs the host dependencies and launcher. Robot configuration is a separate step.
+
+<Note>
+  **Latest version:** `0.11.0`. Versions below `0.7.0` are no longer supported and cannot be used. `0.7.0` introduced major breaking changes — configs made for earlier versions must be replaced. Contact us to update your config.
+</Note>
+
+## Requirements
+
+Choose the container that matches the computer connected to your robot.
+
+| Container tag | Computer | GPU support | Host software |
+| --- | --- | --- | --- |
+| `amd64` | x86-64 computer | CPU only | Ubuntu 22.04 or 24.04 |
+| `arm64` | ARM64 computer | CPU only | Ubuntu 22.04 or 24.04 |
+| `amd64-cu13` | x86-64 computer with a discrete NVIDIA GPU | CUDA 13 and NVENC | Ubuntu 22.04 or 24.04, a CUDA 13-compatible NVIDIA driver, and NVIDIA Container Toolkit |
+| `jp6.2` | NVIDIA Jetson Orin | Jetson GPU and NVENC | JetPack 6.2 or later and NVIDIA Container Toolkit |
+
+<Note>
+  There is no general-purpose ARM64 CUDA container. Use `jp6.2` for NVIDIA Jetson hardware. Use `arm64` for other ARM64 computers.
+</Note>
+
+<Tip>
+  Use `amd64-cu13` or `jp6.2` when the computer has supported NVIDIA hardware. NVENC provides better video quality and encoding performance than CPU encoding for the same compute budget.
+</Tip>
+
+### Required on every platform
+
+- [Docker Engine v27+](https://docs.docker.com/engine/install/ubuntu/)
+- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) — install it through snap or the official installer
+- 10 GB of free space on the root filesystem
+
+### Required for NVIDIA platforms
+
+Install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) when using `amd64-cu13` or `jp6.2`.
+
+- For `amd64-cu13`, install an NVIDIA driver compatible with CUDA 13 and confirm the GPU is visible with `nvidia-smi`.
+- For `jp6.2`, install JetPack 6.2 or later. JetPack provides the CUDA and Jetson multimedia components used for hardware video encoding.
+
+## Setup
+
+<Steps>
+  <Step title="Create a local Sentinel folder">
+    On the computer connected to your robot, create a folder for the Sentinel launcher:
+
+    ```shell
+    mkdir -p ~/sentinel
+    cd ~/sentinel
+    ```
+  </Step>
+
+  <Step title="Save the launcher script">
+    Create `run_sentinel.sh` in `~/sentinel` and paste the script below:
+
+    ```bash
+    #!/bin/bash
+    set -e
+
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+    [[ -f "$SCRIPT_DIR/.env" ]] && source "$SCRIPT_DIR/.env"
+
+    CONFIG_FILE="$1"
+    VERSION="${2:-latest}"
+    NECK_CALIBRATION="${3:-}"
+    CONTAINER_NAME="${4:-sentinel-runtime}"
+
+    if [[ -z "$CONFIG_FILE" ]]; then
+        cat >&2 <<EOF
+    Usage: $0 <config_file> [version] [neck_calibration_file] [container_name]
+      $0 /abs/path/yam_dual.yaml 0.11.0-amd64-cu13
+      $0 /abs/path/cfg.yaml      0.11.0-jp6.2 /abs/path/neck_calibration.json
+      $0 /abs/path/cfg.yaml      0.11.0-jp6.2 /abs/path/neck_calibration.json my-name
+    EOF
+        exit 1
+    fi
+    [[ -f "$CONFIG_FILE" ]] || { echo "ERROR: config not found: $CONFIG_FILE" >&2; exit 1; }
+    [[ -z "$NECK_CALIBRATION" || -f "$NECK_CALIBRATION" ]] \
+        || { echo "ERROR: neck calibration not found: $NECK_CALIBRATION" >&2; exit 1; }
+
+    AUTH_URL="https://api-prod.avearobotics.com"
+    LICENSE_KEY="$(python3 - "$CONFIG_FILE" <<'PY'
+    import sys, yaml
+    sys_ = (yaml.safe_load(open(sys.argv[1])) or {}).get('system') or {}
+    print(sys_.get('license_key') or '')
+    PY
+    )"
+    [[ -n "$LICENSE_KEY" ]] \
+        || { echo "ERROR: system.license_key not found in $CONFIG_FILE" >&2; exit 1; }
+
+    ECR_RESP="$(curl -fsS -X POST "$AUTH_URL/auth/robot/ecr-credentials" \
+        -H 'Content-Type: application/json' \
+        -d "{\"license_key\":\"$LICENSE_KEY\"}")"
+    [[ -n "$ECR_RESP" ]] || { echo "ERROR: empty ECR response from $AUTH_URL" >&2; exit 1; }
+
+    mapfile -t CREDS < <(printf '%s' "$ECR_RESP" | python3 -c \
+        'import json,sys;r=json.load(sys.stdin);print(r["registry"]);print(r["password"])')
+    REGISTRY="${CREDS[0]}"
+    printf '%s' "${CREDS[1]}" \
+        | docker login --username AWS --password-stdin "$REGISTRY" >/dev/null
+    unset CREDS ECR_RESP
+
+    IMAGE="$REGISTRY/sentinel-runtime:${VERSION}"
+
+    ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+    if [[ "$ARCH" == "arm64" && -f /etc/nv_tegra_release ]]; then
+        PLATFORM=jetson
+    elif [[ "$ARCH" == "amd64" ]] && command -v nvidia-smi >/dev/null && nvidia-smi -L >/dev/null 2>&1; then
+        PLATFORM=cuda
+    else
+        PLATFORM=cpu
+    fi
+
+    echo "sentinel-runtime $VERSION  $PLATFORM/$ARCH  $IMAGE  ($CONTAINER_NAME)"
+
+    cd "$REPO_ROOT"
+    mkdir -p datasets
+
+    ARGS=(
+        -it --rm --name "$CONTAINER_NAME"
+        --privileged --network host --ipc host
+        -v /dev:/dev -v /tmp:/tmp
+        -v "$REPO_ROOT/datasets:/datasets"
+        -v "$(realpath "$CONFIG_FILE"):/config/robot.yaml:ro"
+        -v zed-models:/usr/local/zed/resources
+        --group-add video --group-add plugdev
+        -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+        -e ENABLE_RECORDING=true
+    )
+
+    case "$PLATFORM" in
+        cuda)
+            ARGS+=(--gpus all -e NVIDIA_VISIBLE_DEVICES=all -e NVIDIA_DRIVER_CAPABILITIES=all) ;;
+        jetson)
+            ARGS+=(--runtime nvidia --gpus all
+                   -e NVIDIA_VISIBLE_DEVICES=all -e NVIDIA_DRIVER_CAPABILITIES=all)
+            # ZED X / GMSL: Argus ISP settings + host zed/i2c/render GIDs.
+            # /tmp is already bound, so argus_socket + zed_x_daemon sockets come along.
+            [[ -d /var/nvidia/nvcam/settings ]] \
+                && ARGS+=(-v /var/nvidia/nvcam/settings:/var/nvidia/nvcam/settings:ro)
+            for grp in zed i2c render; do
+                gid=$(getent group "$grp" 2>/dev/null | cut -d: -f3 || true)
+                [[ -n "$gid" ]] && ARGS+=(--group-add "$gid")
+            done
+            ;;
+    esac
+
+    [[ -n "$NECK_CALIBRATION" ]] \
+        && ARGS+=(-v "$(realpath "$NECK_CALIBRATION"):/config/neck_calibration.json:ro")
+
+    exec docker run "${ARGS[@]}" "$IMAGE"
+    ```
+
+    Then make it executable:
+
+    ```shell
+    chmod +x run_sentinel.sh
+    ```
+
+    Your folder should now contain `run_sentinel.sh`.
+  </Step>
+</Steps>
+
+## Supported platform tags
+
+- `amd64-cu13` — x86 CPU + NVIDIA discrete GPU (CUDA 13+)
+- `jp6.2` — Jetson Orin running JetPack 6.2.1 or 6.2.2
+- `amd64` — x86 CPU only
+- `arm64` — arm64 computer only
+
+<Warning>
+  **Always prune old image versions before pulling a new one.** Sentinel is safety-critical — running mismatched versions can produce undefined behavior.
+</Warning>
+
+## Next step
+
+<Card title="Set up a robot" icon="robot" href="/getting-started/choose-path" horizontal>
+  Choose a supported integration or connect a robot through ROS 2, then generate the robot configuration.
+</Card>

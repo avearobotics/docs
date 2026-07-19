@@ -1,0 +1,28 @@
+---
+title: "Coming soon"
+description: "Sentinel workflows that are in development and not yet generally available."
+---
+
+The features on this page are in development. Do not depend on them in a production integration yet.
+
+## Supervised autonomy
+
+Supervised autonomy will let a policy control the robot while an operator monitors the task and intervenes when necessary. Recorded actions will distinguish autonomous control, operator intervention, and regular teleoperation so intervention data can be used downstream.
+
+The rollout workflow will support subtask flows and failure markers within a larger episode. The resulting structured data will preserve which subtask failed without treating the entire episode as a single failed attempt.
+
+## Fleet views
+
+Fleet views will show the state of multiple connected robots and let an operator select a robot to inspect or supervise.
+
+## Expanded API control
+
+The current API surface triggers allowlisted robot and episode actions through HTTP POST for a connected session. Future releases will add model rollout actions and expand remote control and system-management operations.
+
+## ROS 2 orchestration and outputs
+
+Lifecycle-node support, controller-manager service integration, TF publication, and full OVR skeleton publication are in development.
+
+<Note>
+  Availability and behavior may change before release. Shipped behavior is documented in the main navigation and [changelog](/changelog).
+</Note>

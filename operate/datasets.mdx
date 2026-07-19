@@ -1,0 +1,35 @@
+---
+title: "Dataset output"
+description: "What Sentinel records from a data-collection session."
+---
+
+Sentinel records synchronized robot data and collection metadata for each episode. The output preserves the task structure and labels added during collection.
+
+## What an episode contains
+
+Depending on the robot configuration, an episode can contain:
+
+- Joint state and commanded motion
+- Gripper and mobile-base state
+- Headset and controller input
+- Encoded camera streams
+- Task, subtask, operator, and outcome metadata
+- Timestamps for episode and subtask events
+
+The runtime records ROS 2 data in MCAP. Sentinel metadata is stored alongside the recording so conversion and training pipelines can recover the collection context.
+
+## Treat labels as part of the data
+
+Do not infer task boundaries only from timestamps or video. Use the task, subtask, and outcome metadata recorded during the session.
+
+When building a converter, preserve the source timestamps and identifiers. This keeps video, robot state, actions, and labels aligned.
+
+<Note>
+  Dataset schemas can add fields between releases. Consumers should ignore unknown metadata fields rather than rejecting an episode.
+</Note>
+
+## Next step
+
+<Card title="Review upcoming workflows" icon="clock" href="/coming-soon" horizontal>
+  See which autonomy, fleet, and API workflows are still in development.
+</Card>

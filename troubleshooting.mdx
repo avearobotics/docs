@@ -1,0 +1,72 @@
+---
+title: "Troubleshooting"
+description: "Check common Sentinel setup, ROS 2, video, and network problems."
+---
+
+Start with the symptom the operator can observe. Change one part of the system at a time, then repeat the same check.
+
+## Robot does not appear
+
+- Confirm the Sentinel runtime is running on the robot computer.
+- Confirm the computer can reach the internet.
+- Confirm the robot is registered to the same organization as the operator.
+- Check that system time is synchronized.
+
+## Robot will not become ready
+
+- Confirm `sensor_msgs/JointState` starts before Sentinel and publishes continuously at 100 Hz or faster.
+- Check for gaps approaching 500 ms. A stale stream triggers an E-stop.
+- Check that joint names match the URDF.
+- Check that positions use radians.
+- Confirm the robot description is available before the control pipeline starts.
+- Confirm the ROS 2 domain and QoS settings match the integration.
+
+## Commands do not move the robot
+
+- Confirm the robot is ready and teleoperation is active.
+- Echo the command topic and verify messages arrive.
+- Check the command message type and joint order.
+- Confirm the robot-side controller accepts the same command with a small manual test.
+- Check the hardware emergency stop and controller faults.
+
+## Camera is missing
+
+- Run `ros2 topic hz <camera-topic>`.
+- Confirm the configured image transport matches the publisher: `raw`, `compressed`, or `compressedDepth`.
+- Check image encoding, reliability, and queue depth.
+- Check that the configured topic name and camera name are correct.
+- Confirm the camera topic is in the expected DDS domain. Cross-domain camera input requires the dedicated compressed-camera bridge.
+- Test one camera at a time before enabling multiple views.
+
+## Video or control is delayed
+
+- Use a wired connection for the robot computer when possible.
+- Keep the headset on a low-congestion Wi-Fi network with strong signal.
+- Reduce camera resolution, frame rate, or the number of active streams.
+- Check whether delay affects video, commands, or both.
+- Compare timestamps at capture, command generation, and robot receipt when diagnostic logs are available.
+
+## Connection drops
+
+- Check for Wi-Fi roaming, power saving, and weak signal.
+- Confirm the robot computer does not suspend network or GPU devices.
+- Verify that state and camera publishers continue after the network reconnects.
+- Put the robot into a safe state before restarting any component.
+
+<Warning>
+  Stop and disarm the robot before changing controller, topic, or limit configuration. Clear the workspace before testing motion again.
+</Warning>
+
+## Collect information for support
+
+Include:
+
+- Sentinel runtime version
+- Robot and compute model
+- Session time and timezone
+- ROS 2 distribution and `ROS_DOMAIN_ID`
+- Relevant topic names, types, and rates
+- The operator-visible symptom
+- Whether the problem reproduces locally
+
+For help, contact the team in [Slack](https://avea-robotics.slack.com).

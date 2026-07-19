@@ -1,0 +1,98 @@
+---
+title: "Session actions API"
+description: "Trigger allowlisted robot and episode actions through an active Sentinel session."
+---
+
+The session actions API sends a named action to a connected Sentinel runtime. Use it to control the robot or the active data-collection episode.
+
+<Warning>
+  This endpoint does not call an arbitrary ROS 2 service. It accepts only the named actions exposed by the platform and implemented by the robot configuration.
+</Warning>
+
+## Send an action
+
+```bash
+curl --request POST \
+  "https://<sentinel-api>/<customer-id>/sessions/<session-name>/action" \
+  --header "Authorization: Bearer <token>" \
+  --header "Content-Type: application/json" \
+  --data '{"action":"disarm_all"}'
+```
+
+## Robot actions
+
+The current robot action allowlist is:
+
+- `arm_all`
+- `arm_and_start`
+- `arm_and_start_all`
+- `go_to_start_all`
+- `disarm_all`
+- `go_home`
+- `go_home_all`
+
+The robot must be connected to the named session. An operator does not need to be connected for the runtime to receive the action.
+
+## Episode actions
+
+Episode actions control data collection in the same session:
+
+| Action | Behavior |
+| --- | --- |
+| `toggle_episode` | Starts a new episode when idle. Stops and marks the active episode as successful when recording. |
+| `fail_episode` | Stops the active episode, records a failure outcome, and applies the configured failed-episode retention policy. The default policy retains the finalized recording. |
+| `discard_episode` | Stops the active episode and deletes its recorded files. |
+
+For example, start or stop an episode with:
+
+```bash
+curl --request POST \
+  "https://<sentinel-api>/<customer-id>/sessions/<session-name>/action" \
+  --header "Authorization: Bearer <token>" \
+  --header "Content-Type: application/json" \
+  --data '{"action":"toggle_episode"}'
+```
+
+<Warning>
+  `discard_episode` permanently removes the active episode recording. Use `fail_episode` to label a failed attempt. Confirm that the failed-episode retention policy keeps recordings before relying on that data for labeling or training.
+</Warning>
+
+Episode actions return an error when there is no active recording to fail or discard. `toggle_episode` also returns an error while an episode is finalizing.
+
+## Success response
+
+```json
+{
+  "cmd_id": "cmd-a1b2c3d4e5f6",
+  "action": "disarm_all",
+  "ok": true,
+  "message": "2/2 robots disarmed"
+}
+```
+
+The HTTP response reports whether the runtime accepted and ran the action handler. Some robot-side operations may continue after the handler returns. Do not treat an HTTP `200` as independent proof that physical motion has completed.
+
+## Errors
+
+| Status | Meaning |
+| --- | --- |
+| `400` | The action is missing or not allowlisted |
+| `401` | The bearer token is missing or invalid |
+| `404` | The session does not exist |
+| `502` | The robot ran the action handler and reported failure |
+| `503` | No robot is connected to the session |
+| `504` | The robot did not acknowledge the action before the timeout |
+
+## Safety
+
+Robot-side action handlers remain responsible for state and safety checks. Keep emergency stop on the validated hardware safety path.
+
+## Model rollouts and subtask failures
+
+Model rollout actions are coming soon. The planned workflow will let an operator supervise a model rollout, follow a subtask flow, and mark a failure inside a larger episode without discarding the rest of the episode. Sentinel will preserve the episode, subtask, and failure relationships as structured data for downstream evaluation and training.
+
+<Note>
+  Rollout actions and failure markers within an episode are not part of the current session actions API. See [Coming soon](/coming-soon) for planned workflows.
+</Note>
+
+The public control API will expand beyond this session-scoped action endpoint. This page documents only the current allowlisted behavior.
