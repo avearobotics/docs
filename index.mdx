@@ -8,22 +8,22 @@ mode: "wide"
 Sentinel is a robot operations platform for remotely controlling robots from anywhere, collecting data, evaluating model rollouts, labeling errors and subtasks, and integrating robot workflows into your own platform.
 
 <Columns cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/getting-started/quickstart">
+    Install the runtime and run a first teleoperation session.
+  </Card>
   <Card title="Install Sentinel" icon="download" href="/getting-started/install">
     Install the runtime on the computer connected to your robot.
-  </Card>
-  <Card title="Review supported hardware" icon="robot" href="/getting-started/supported-hardware">
-    Check ready-made robot, camera, and compute support.
   </Card>
   <Card title="Connect a ROS 2 robot" icon="diagram-project" href="/ros2/overview">
     Connect your controllers, cameras, and services through ROS 2.
   </Card>
-  <Card title="Send an API request" icon="code" href="/ros2/session-services">
-    Invoke a configured robot service during an active session.
-  </Card>
-  <Card title="Set up tasks and labels" icon="tags" href="/operate/data-collection">
-    Define the task structure recorded during data collection.
+  <Card title="Collect data" icon="tags" href="/operate/collect-data">
+    Record teleoperation episodes with tasks, subtasks, and labels.
   </Card>
   <Card title="Use your data" icon="database" href="/operate/datasets">
     Work with recorded robot data, video, subtasks, and labels.
+  </Card>
+  <Card title="Send an API request" icon="code" href="/api/session-actions">
+    Trigger robot and episode actions during an active session.
   </Card>
 </Columns>

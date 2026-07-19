@@ -1,0 +1,91 @@
+---
+title: "Configure your robot"
+description: "The structure of robot.yaml and ready-made configuration templates."
+---
+
+A single `robot.yaml` file describes everything the Sentinel runtime controls: the robot systems, cameras, operator controls, and dataset recording. The launcher mounts it into the container read-only at `/config/robot.yaml`.
+
+Robot configuration is moving into website-managed form fields. During the transition, most integrations use a `robot.yaml` built from the templates below.
+
+## Start from a template
+
+Download the template that matches your hardware and fill in the placeholder fields (`<EDIT: ...>` or `<PLACEHOLDER>`). Each template documents its required fields at the top of the file.
+
+| Template | Hardware |
+| --- | --- |
+| [`ros2_single_arm.yaml`](/configs/ros2_single_arm.yaml) | Any ROS 2 robot — single arm, gripper, and one bridged camera |
+| [`ros2_dual_arm.yaml`](/configs/ros2_dual_arm.yaml) | Any ROS 2 robot — dual arm |
+| [`yam_dual_3realsense.yaml`](/configs/yam_dual_3realsense.yaml) | Bimanual i2rt YAM with three RealSense cameras |
+| [`yam_dual_zed_immersive.yaml`](/configs/yam_dual_zed_immersive.yaml) | Bimanual i2rt YAM with a ZED immersive camera |
+| [`trossen_dual_3realsense.yaml`](/configs/trossen_dual_3realsense.yaml) | Dual Trossen arms with three RealSense cameras |
+| [`trossen_dual_zed_immersive.yaml`](/configs/trossen_dual_zed_immersive.yaml) | Dual Trossen arms with a ZED immersive camera |
+
+For other [supported robots](/getting-started/supported-hardware), contact the team in [Slack](https://avea-robotics.slack.com) for a starting configuration.
+
+Every template needs a license key. Generate one per robot in the [dashboard](https://dashboard.avearobotics.com/dashboard/robots) and set it in `system.license_key`.
+
+<Warning>
+  The motion sections ship with conservative velocity, acceleration, and workspace limits. Validate a new configuration with a cleared workspace before raising any limit.
+</Warning>
+
+## File structure
+
+The top-level sections of every configuration:
+
+| Section | What it configures |
+| --- | --- |
+| `system` | License key and global switches such as `enable_dataset_recording` |
+| `xr` | What the operator sees: camera views and video latency budget |
+| `analog_inputs` and `buttons` | Controller mapping — which button arms, disarms, drives, and controls episodes |
+| `cameras` | Camera adapters (RealSense, ZED, UVC, or a bridged ROS 2 topic) and their video encoders |
+| `dataset_recording` | Recording output directory, storage format, and the exact topics recorded |
+| `systems` | One entry per independently controlled robot: adapters, capabilities, safety, state machine, and orchestration |
+
+### Systems
+
+Each entry in `systems` is one namespaced robot with its own adapters and lifecycle. A bimanual setup is typically two systems (`yam_left`, `yam_right`); see [Systems and robots](/ros2/overview#systems-and-robots).
+
+Within a system:
+
+- **`adapters`** connect Sentinel to the hardware — either a ready-made hardware adapter (for example `sentinel_adapter_yam::YamAdapter`) or the generic `sentinel_adapter_ros2_bridge::Ros2BridgeAdapter` documented in [Robot control topics](/ros2/control-interface).
+- **`capabilities`** define what the operator controls: manipulator chains with joint limits and IK settings, grippers, and their retargeting from headset motion.
+- **`safety`** sets joint-limit margins, velocity scaling, and emergency-stop behavior.
+- **`state_machine`** sets joint names, home and start positions, and motion timeouts.
+- **`orchestration`** lists the node lifecycle transitions run on arm, disarm, and teleop start/stop. The templates mark this section as not to be edited.
+
+### Controller mapping
+
+The `buttons` section binds controller inputs to robot and episode actions. The template default:
+
+| Input | Action |
+| --- | --- |
+| Grip (hold) | Start teleoperation; releasing stops it |
+| A button | Arm all systems and move to start pose |
+| A button (long press) | Send all systems home |
+| B button | Disarm all systems |
+| X button | Start or stop the recording episode |
+| Y button | Stop the episode and mark it failed |
+
+### Dataset recording
+
+`dataset_recording` lists the exact topics recorded into each episode and where recordings are written. See [Collect data](/operate/collect-data) for the recording workflow and [Using your data](/operate/datasets) for the on-disk format.
+
+## Validate a configuration
+
+<Steps>
+  <Step title="Fill in every placeholder">
+    Search the file for `<EDIT` and `<PLACEHOLDER`. The launcher fails early only on a missing `system.license_key`; other placeholders fail at runtime.
+  </Step>
+  <Step title="Start Sentinel with the config">
+    Run the launcher and watch the logs for adapter and camera startup errors.
+  </Step>
+  <Step title="Verify before arming">
+    For ROS 2 robots, run the [pre-Sentinel checks](/ros2/control-interface#validate-before-sentinel) before the first arm.
+  </Step>
+</Steps>
+
+## Next step
+
+<Card title="Run the quickstart" icon="rocket" href="/getting-started/quickstart" horizontal>
+  Start the runtime with your configuration and run a first session.
+</Card>

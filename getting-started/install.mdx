@@ -31,7 +31,7 @@ Choose the container that matches the computer connected to your robot.
 ### Required on every platform
 
 - [Docker Engine v27+](https://docs.docker.com/engine/install/ubuntu/)
-- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) — install it through snap or the official installer
+- Python 3 with [PyYAML](https://pypi.org/project/PyYAML/) — the launcher uses it to read the license key from the config: `python3 -m pip install pyyaml`
 - 10 GB of free space on the root filesystem
 
 ### Required for NVIDIA platforms
@@ -165,12 +165,14 @@ Install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-
   </Step>
 </Steps>
 
-## Supported platform tags
+## Update Sentinel
 
-- `amd64-cu13` — x86 CPU + NVIDIA discrete GPU (CUDA 13+)
-- `jp6.2` — Jetson Orin running JetPack 6.2.1 or 6.2.2
-- `amd64` — x86 CPU only
-- `arm64` — arm64 computer only
+To move to a new version, remove the old runtime images first, then start the launcher with the new version tag — it pulls the image automatically:
+
+```shell
+docker images --format '{{.Repository}}:{{.Tag}}' | grep sentinel-runtime | xargs -r docker rmi
+./run_sentinel.sh /absolute/path/to/robot.yaml 0.11.0-amd64-cu13
+```
 
 <Warning>
   **Always prune old image versions before pulling a new one.** Sentinel is safety-critical — running mismatched versions can produce undefined behavior.
@@ -178,6 +180,6 @@ Install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-
 
 ## Next step
 
-<Card title="Set up a robot" icon="robot" href="/getting-started/choose-path" horizontal>
-  Choose a supported integration or connect a robot through ROS 2, then generate the robot configuration.
+<Card title="Configure your robot" icon="sliders" href="/getting-started/configure-robot" horizontal>
+  Build the robot.yaml the launcher needs, starting from a template.
 </Card>

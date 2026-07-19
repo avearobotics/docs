@@ -16,7 +16,7 @@
 # Everything else is a safe, conservative default. We review and tune the
 # motion sections with you during bring-up.
 #
-# Docs: https://docs.avearobotics.com/integration/overview
+# Docs: https://docs.avearobotics.com/ros2/overview
 
 # ============================================================================
 # System

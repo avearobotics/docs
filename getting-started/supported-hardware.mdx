@@ -1,9 +1,9 @@
 ---
 title: "Supported hardware"
-description: "Robots, cameras, and compute targets with ready-made Sentinel support."
+description: "Ready-made robot, camera, and compute support, and how to connect hardware that isn't listed."
 ---
 
-Robot and camera support are independent. Use a ready-made integration where one exists and connect the remaining hardware through ROS 2.
+Robot and camera support are independent: use a ready-made integration where one exists and connect the remaining hardware through ROS 2. You can mix the paths — a supported robot can use a custom ROS 2 camera, and a ROS 2 robot can use a supported camera that Sentinel opens directly.
 
 | Robot path | Camera path | Result |
 | --- | --- | --- |
@@ -11,6 +11,8 @@ Robot and camera support are independent. Use a ready-made integration where one
 | Supported robot | ROS 2 camera | Use the ready-made robot integration and publish the camera through ROS 2. |
 | ROS 2 robot | Supported camera | Connect the robot through ROS 2 and let Sentinel open the camera directly. |
 | ROS 2 robot | ROS 2 camera | Connect the robot and camera through their ROS 2 interfaces. |
+
+If your robot is not listed below but speaks ROS 2, connect it through the [ROS 2 integration](/ros2/overview). If your camera is not listed but already publishes a compatible ROS 2 feed, follow the [ROS 2 camera interface](/ros2/camera-interface).
 
 ## Robots
 
@@ -62,8 +64,6 @@ Both commands must return `active`.
   ZED X cameras are supported only on Jetson Orin. A discrete NVIDIA GPU in an x86-64 computer is not sufficient for a GMSL ZED X setup.
 </Warning>
 
-A camera does not need to appear on this list when it already publishes a compatible ROS 2 feed. Follow the [ROS 2 camera interface](/ros2/camera-interface) instead.
-
 ## Compute
 
 Sentinel provides containers for:
@@ -81,6 +81,6 @@ See [Install Sentinel](/getting-started/install) for platform tags and condition
 
 ## Next step
 
-<Card title="Choose your setup path" icon="arrow-right" href="/getting-started/choose-path" horizontal>
-  Select the robot and camera paths for your system.
+<Card title="Configure your robot" icon="sliders" href="/getting-started/configure-robot" horizontal>
+  Build the robot.yaml for your hardware, starting from a template.
 </Card>

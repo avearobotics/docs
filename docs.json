@@ -6,6 +6,14 @@
     {
       "source": "/getting-started/supported-robots",
       "destination": "/getting-started/supported-hardware"
+    },
+    {
+      "source": "/ros2/session-services",
+      "destination": "/api/session-actions"
+    },
+    {
+      "source": "/getting-started/choose-path",
+      "destination": "/getting-started/supported-hardware"
     }
   ],
   "colors": {
@@ -26,34 +34,51 @@
         "group": "Getting started",
         "pages": [
           "index",
-          "getting-started/install",
-          "getting-started/choose-path",
+          "getting-started/quickstart",
           "getting-started/supported-hardware"
         ]
       },
       {
-        "group": "ROS 2 control API",
+        "group": "Setup",
         "pages": [
-          "ros2/overview",
-          "ros2/control-interface",
-          "ros2/networking",
-          "ros2/camera-interface",
-          "ros2/session-services",
+          "getting-started/install",
+          "getting-started/configure-robot",
           {
-            "group": "Worked examples",
+            "group": "ROS 2 integration",
             "pages": [
-              "ros2/examples/ros2-control",
-              "ros2/examples/i2rt-adapter"
+              "ros2/overview",
+              "ros2/control-interface",
+              "ros2/camera-interface",
+              "ros2/networking",
+              {
+                "group": "Worked examples",
+                "pages": [
+                  "ros2/examples/ros2-control",
+                  "ros2/examples/i2rt-adapter"
+                ]
+              }
             ]
           }
         ]
       },
       {
-        "group": "Operate and collect",
+        "group": "Operate",
         "pages": [
-          "operate/teleoperation",
+          "operate/teleoperation"
+        ]
+      },
+      {
+        "group": "Data collection",
+        "pages": [
+          "operate/collect-data",
           "operate/data-collection",
           "operate/datasets"
+        ]
+      },
+      {
+        "group": "API",
+        "pages": [
+          "api/session-actions"
         ]
       },
       {
@@ -85,7 +110,7 @@
     "primary": {
       "type": "button",
       "label": "Get started",
-      "href": "/getting-started/choose-path"
+      "href": "/getting-started/quickstart"
     }
   },
   "contextual": {
