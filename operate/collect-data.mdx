@@ -1,0 +1,81 @@
+---
+title: "Collect data"
+description: "Record teleoperation episodes and manage their outcomes."
+---
+
+Sentinel records teleoperation into **episodes** — one recording per attempt at a task. This page covers turning recording on, starting and ending episodes, and what happens to each outcome. The on-disk result is documented in [Using your data](/operate/datasets).
+
+## Enable recording
+
+Recording is controlled by the robot configuration:
+
+```yaml
+system:
+  enable_dataset_recording: true
+
+dataset_recording:
+  enabled: true
+  output_dir: "/datasets"
+  storage_format: "mcap"
+  max_bag_size_bytes: 1073741824   # split MCAP files at 1 GiB
+  min_free_disk_bytes: 5368709120  # stop recording below 5 GiB free
+  fps: 30.0
+  topics:
+    - /sentinel/events
+    - /sentinel/xr/input/xr_input
+    # ... robot state, commands, and encoded camera topics
+```
+
+The `topics` list defines exactly what each episode contains. Include the measured state, command, and encoded camera topics for every system you want in the dataset — the [configuration templates](/getting-started/configure-robot) ship with a complete list for their hardware.
+
+The launcher creates a `datasets/` directory next to the Sentinel folder on the host and mounts it at `/datasets`, so recordings survive container restarts. It also sets `ENABLE_RECORDING=true` in the container environment.
+
+<Warning>
+  Recording stops when free disk space falls below `min_free_disk_bytes`. Check available space before a long collection run.
+</Warning>
+
+## Start and end episodes
+
+During a session, the operator controls episodes from the headset. With the default [controller mapping](/getting-started/configure-robot#controller-mapping):
+
+| Input | Action |
+| --- | --- |
+| X button | Start an episode, or stop the active one and mark it **successful** |
+| Y button | Stop the active episode and mark it **failed** |
+
+The same actions are available over HTTP through the [session actions API](/api/session-actions) — `toggle_episode`, `fail_episode`, and `discard_episode` — so an external system can drive collection without operator input.
+
+Select the active task before starting an episode and advance through its subtasks as you work. Sentinel snapshots the task, prompt, and operator context when the episode begins. See [Tasks, subtasks, and labels](/operate/data-collection).
+
+## Episode outcomes
+
+| Outcome | How it happens | What is kept |
+| --- | --- | --- |
+| Success | Stop with the X button or `toggle_episode` | The finalized recording |
+| Failure | Y button or `fail_episode` | Depends on the configured retention policy. The default retains the finalized recording. |
+| Discarded | `discard_episode` | Nothing — the recorded files are deleted |
+
+<Warning>
+  `discard_episode` permanently deletes the active episode. Use a failure outcome for unsuccessful attempts you want to keep for labeling or training, and confirm the failed-episode retention policy before relying on that data.
+</Warning>
+
+Decide what counts as success before a collection run begins and apply it consistently across operators — outcome labels are much cheaper to record now than to reconstruct from video later.
+
+## Check the output
+
+Episodes land in timestamped session directories under `datasets/`:
+
+```text
+datasets/
+└── session_20260718_143052/
+    ├── episode_001.finalized/
+    └── episode_002.finalized/
+```
+
+An active recording uses the `.in_progress` suffix and must not be treated as complete. See [Using your data](/operate/datasets) for the directory layout, recorded topics, message schemas, and episode metadata.
+
+## Next step
+
+<Card title="Structure the data with tasks and labels" icon="tags" href="/operate/data-collection" horizontal>
+  Define tasks, subtasks, and outcome criteria before a collection run.
+</Card>

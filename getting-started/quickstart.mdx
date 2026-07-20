@@ -1,0 +1,72 @@
+---
+title: "Quickstart"
+description: "Install Sentinel, start the runtime, and drive your robot in a first teleoperation session."
+---
+
+This page takes a supported robot from nothing installed to a first teleoperation session. Each step links to the full page for that topic.
+
+## Before you start
+
+- A [supported robot](/getting-started/supported-hardware) connected to an Ubuntu 22.04 or 24.04 computer
+- A Meta Quest 3 or 3S with the Sentinel operator app
+- A Sentinel account with access to the [dashboard](https://dashboard.avearobotics.com/dashboard/robots)
+
+<Note>
+  Don't have a supported robot? Connect a robot through ROS 2 instead? Follow the same steps, but build your configuration from the [ROS 2 integration](/ros2/overview) before step 3.
+</Note>
+
+<Steps>
+  <Step title="Install the runtime">
+    Follow [Install Sentinel](/getting-started/install) to set up Docker, the platform dependencies, and the `run_sentinel.sh` launcher in `~/sentinel`.
+  </Step>
+
+  <Step title="Get a robot configuration">
+    Generate a license key for the robot in the [dashboard](https://dashboard.avearobotics.com/dashboard/robots), then create the `robot.yaml` for your hardware. See [Configure your robot](/getting-started/configure-robot) for templates and the file's structure.
+  </Step>
+
+  <Step title="Start Sentinel">
+    Run the launcher with the configuration file and the platform tag for your computer:
+
+    ```shell
+    cd ~/sentinel
+    ./run_sentinel.sh /absolute/path/to/robot.yaml 0.11.0-amd64-cu13
+    ```
+
+    The launcher authenticates with the license key from the config, pulls the runtime image, and starts the container. A successful start prints a line like:
+
+    ```text
+    sentinel-runtime 0.11.0-amd64-cu13  cuda/amd64  <registry>/sentinel-runtime:0.11.0-amd64-cu13  (sentinel-runtime)
+    ```
+
+    followed by the runtime logs.
+  </Step>
+
+  <Step title="Confirm the robot is online">
+    Put on the headset, sign in to the operator app, and confirm the robot appears in the robot list. If it does not appear within a minute, see [Robot does not appear](/troubleshooting#robot-does-not-appear).
+  </Step>
+
+  <Step title="Run a first session">
+    Select the robot, confirm every camera view is live, and clear the workspace. Then, with the default controller bindings:
+
+    1. Press **A** to arm the robot and move it to its start pose.
+    2. Hold the **grip** button to drive. Releasing it stops teleoperation.
+    3. Press **B** to disarm when you are done.
+
+    See [Teleoperation](/operate/teleoperation) for the full session flow and safety notes.
+  </Step>
+</Steps>
+
+<Warning>
+  Keep a physical emergency stop within reach whenever the robot can move. Do not rely on the headset or network as the only emergency-stop path.
+</Warning>
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Collect data" icon="database" href="/operate/collect-data">
+    Record teleoperation episodes and manage their outcomes.
+  </Card>
+  <Card title="Configure your robot" icon="sliders" href="/getting-started/configure-robot">
+    Understand and tune the `robot.yaml` configuration.
+  </Card>
+</Columns>

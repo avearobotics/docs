@@ -3,7 +3,35 @@ title: "Teleoperation"
 description: "How an operator connects to a robot and runs a session."
 ---
 
-An operator uses the Sentinel app on a Meta Quest 3 or 3S to drive a connected robot.
+An operator uses the Sentinel app on a Meta Quest 3 or 3S to drive a connected robot. Controller motion is retargeted to the robot's end effector; the trigger drives the gripper.
+
+## Robot states
+
+A robot moves through these states during a session:
+
+| State | Meaning |
+| --- | --- |
+| `DISARMED` | Motors are not under Sentinel control. The initial state. |
+| `ARMING` / `CALIBRATING` / `HOMING` | The robot is arming and moving to its configured pose. Keep the workspace clear. |
+| `ARMED` | Ready. The robot holds position and waits for teleoperation to start. |
+| `TELEOP_ACTIVE` | The operator is driving the robot. |
+| `E_STOP` | A fault stopped the robot — for example a stale joint-state stream. Resolve the cause before re-arming. |
+
+## Default controls
+
+Controller bindings come from the robot configuration; these are the defaults shipped in the [configuration templates](/getting-started/configure-robot#controller-mapping):
+
+| Input | Action |
+| --- | --- |
+| Grip (hold) | Start teleoperation for that hand's arm; releasing stops it |
+| Trigger | Drive the gripper |
+| A button | Arm all systems and move to the start pose |
+| A button (long press) | Send all systems home |
+| B button | Disarm all systems |
+| X button | Start or stop the recording episode |
+| Y button | Stop the episode and mark it failed |
+
+On bimanual robots each hand drives its own arm, and joystick input can be mapped to live velocity scaling.
 
 ## Session flow
 
@@ -15,13 +43,13 @@ An operator uses the Sentinel app on a Meta Quest 3 or 3S to drive a connected r
     Confirm that each required camera is live and shows the expected view.
   </Step>
   <Step title="Arm the robot">
-    Put the robot into its ready state. Keep the workspace clear while the robot arms and moves to its start pose.
+    Press **A** to arm. Keep the workspace clear while the robot arms and moves to its start pose.
   </Step>
   <Step title="Start teleoperation">
-    Hold the configured deadman control to drive. Releasing it stops teleoperation and returns the robot to its ready state.
+    Hold the **grip** button to drive. Releasing it stops teleoperation and returns the robot to its ready state.
   </Step>
   <Step title="End the session">
-    Stop teleoperation, disarm the robot, and close the session when collection is complete.
+    Stop teleoperation, disarm with **B**, and close the session when collection is complete.
   </Step>
 </Steps>
 
@@ -31,6 +59,6 @@ An operator uses the Sentinel app on a Meta Quest 3 or 3S to drive a connected r
 
 ## Next step
 
-<Card title="Collect tasks and labels" icon="tags" href="/operate/data-collection" horizontal>
-  Structure a collection session with tasks, subtasks, and episode labels.
+<Card title="Collect data" icon="database" href="/operate/collect-data" horizontal>
+  Record teleoperation episodes and manage their outcomes.
 </Card>
