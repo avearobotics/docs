@@ -1,45 +1,29 @@
 ---
 title: "Sentinel"
-sidebarTitle: "Introduction"
-description: "Teleoperate a robot from a VR headset and record the sessions as training data."
+sidebarTitle: "Sentinel"
+description: "Operate, Evaluate, Deploy"
+mode: "wide"
 ---
 
-Sentinel is a container-based runtime for robot teleoperation. An operator in a VR headset drives a robot in real time — reaching, grasping, looking around, and moving — while each session is recorded as training data. The operator sees through the robot's cameras and moves it with their hands.
+Sentinel is a robot operations platform for remotely controlling robots from anywhere, collecting data, evaluating model rollouts, labeling errors and subtasks, and integrating robot workflows into your own platform.
 
-## How it works
-
-The runtime runs on a computer near the robot. It converts the operator's hand motion into joint commands, drives the gripper and base, points the cameras, and streams video back to the headset. It sits between the headset and cloud and the robot's control interface.
-
-```mermaid
-flowchart LR
-    H["🥽 VR headset<br/>(operator)"] <--> C["☁️ Sentinel cloud"]
-    C <--> R["⚙️ Sentinel runtime"]
-    R <-->|"robot interface"| Y["🤖 Robot"]
-
-    style Y fill:#383d66,color:#fff,stroke:#252840
-    style R fill:#d4d7ec,stroke:#383d66,color:#000
-```
-
-The whole system is driven by a single `robot.yaml` — cameras, controls, robot capabilities, safety limits, and streaming all live there. See the [configuration reference](/configuration/reference).
-
-## Setup paths
-
-- **Robots that speak ROS 2** connect over a few standard topics — most `ros2_control` setups already expose them. Copy a pre-filled config and fill in the marked fields. See [Connect over ROS 2](/integration/overview).
-- **Supported hardware** runs from a ready-made config with nothing to integrate. Install the runtime, add the `robot.yaml`, and drive. See [Installation](/installation) and the [supported hardware list](/hardware/supported).
-
-## Next steps
-
-<CardGroup cols={2}>
-  <Card title="Connect over ROS 2" icon="robot" href="/integration/overview">
-    The topics your robot exposes and the pre-filled config that maps them.
+<Columns cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/getting-started/quickstart">
+    Install the runtime and run a first teleoperation session.
   </Card>
-  <Card title="Installation" icon="rocket" href="/installation">
-    Install the runtime and drive your robot.
+  <Card title="Install Sentinel" icon="download" href="/getting-started/install">
+    Install the runtime on the computer connected to your robot.
   </Card>
-  <Card title="Configuration reference" icon="gears" href="/configuration/reference">
-    Every section of `robot.yaml`.
+  <Card title="Connect a ROS 2 robot" icon="diagram-project" href="/ros2/overview">
+    Connect your controllers, cameras, and services through ROS 2.
   </Card>
-  <Card title="Using your data" icon="database" href="/data/using-your-data">
-    Recorded session layout and message formats.
+  <Card title="Collect data" icon="tags" href="/operate/collect-data">
+    Record teleoperation episodes with tasks, subtasks, and labels.
   </Card>
-</CardGroup>
+  <Card title="Use your data" icon="database" href="/operate/datasets">
+    Work with recorded robot data, video, subtasks, and labels.
+  </Card>
+  <Card title="Send an API request" icon="code" href="/api/session-actions">
+    Trigger robot and episode actions during an active session.
+  </Card>
+</Columns>

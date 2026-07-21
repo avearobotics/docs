@@ -1,0 +1,86 @@
+---
+title: "Supported hardware"
+description: "Ready-made robot, camera, and compute support, and how to connect hardware that isn't listed."
+---
+
+Robot and camera support are independent: use a ready-made integration where one exists and connect the remaining hardware through ROS 2. You can mix the paths — a supported robot can use a custom ROS 2 camera, and a ROS 2 robot can use a supported camera that Sentinel opens directly.
+
+| Robot path | Camera path | Result |
+| --- | --- | --- |
+| Supported robot | Supported camera | Sentinel manages both integrations. |
+| Supported robot | ROS 2 camera | Use the ready-made robot integration and publish the camera through ROS 2. |
+| ROS 2 robot | Supported camera | Connect the robot through ROS 2 and let Sentinel open the camera directly. |
+| ROS 2 robot | ROS 2 camera | Connect the robot and camera through their ROS 2 interfaces. |
+
+If your robot is not listed below but speaks ROS 2, connect it through the [ROS 2 integration](/ros2/overview). If your camera is not listed but already publishes a compatible ROS 2 feed, follow the [ROS 2 camera interface](/ros2/camera-interface).
+
+## Robots
+
+Supported robots have a ready-made integration for their standard control interfaces. Cameras are configured separately.
+
+### Tabletop and industrial manipulators
+
+| Manufacturer | Model | Form |
+| --- | --- | --- |
+| i2rt | YAM Series | Single-arm tabletop manipulator |
+| Trossen Robotics | WidowX AI | Single-arm tabletop manipulator |
+| AgileX | PiperX | Single-arm tabletop manipulator |
+| Standard Bots | Core | Industrial manipulator |
+| Universal Robots | UR Series | Industrial manipulator |
+| Enactic | OpenArm | Bimanual tabletop manipulator |
+| Almond | Axol | Bimanual tabletop manipulator |
+
+### Mobile and humanoid robots
+
+| Manufacturer | Model | Form |
+| --- | --- | --- |
+| RealMan | RMC-DA | Bimanual mobile manipulator |
+| LimX Dynamics | Oli | Humanoid |
+| Unitree | G1 | Humanoid |
+
+## Cameras
+
+Sentinel can open these cameras directly when they are attached to the robot computer:
+
+| Camera | Requirements |
+| --- | --- |
+| Stereolabs ZED series | An NVIDIA GPU with CUDA. Use the `amd64-cu13` or `jp6.2` container. |
+| Stereolabs ZED X series (GMSL) | A Jetson Orin running JetPack 6.2 or later, the `jp6.2` container, and the appropriate Stereolabs capture card, cabling, and camera hardware. |
+| Intel RealSense D435i and D405 | A supported x86-64, ARM64, or Jetson computer. |
+| UVC-compatible cameras | A supported x86-64, ARM64, or Jetson computer. |
+
+### ZED X services
+
+Before starting Sentinel with a ZED X camera, confirm that both required services are running:
+
+```shell
+systemctl is-active zed_x_daemon.service
+systemctl is-active nvargus-daemon.service
+```
+
+Both commands must return `active`.
+
+<Warning>
+  ZED X cameras are supported only on Jetson Orin. A discrete NVIDIA GPU in an x86-64 computer is not sufficient for a GMSL ZED X setup.
+</Warning>
+
+## Compute
+
+Sentinel provides containers for:
+
+- x86-64 computers
+- ARM64 computers
+- x86-64 computers with a discrete NVIDIA GPU and CUDA 13
+- NVIDIA Jetson Orin devices running JetPack 6.2 or later
+
+See [Install Sentinel](/getting-started/install) for platform tags and conditional NVIDIA requirements.
+
+<Note>
+  A supported camera or compute target does not make an unsupported robot plug-and-play. Connect that robot through the [ROS 2 integration](/ros2/overview).
+</Note>
+
+## Next step
+
+<Card title="Configure your robot" icon="sliders" href="/getting-started/configure-robot" horizontal>
+  Build the robot.yaml for your hardware, starting from a template.
+</Card>

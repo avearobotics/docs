@@ -1,49 +1,55 @@
 ---
-title: "Installation"
-description: "Install the Sentinel runtime, add your config, and drive your robot."
+title: "Install Sentinel"
+description: "Install the Sentinel runtime and launcher on the robot computer."
 ---
 
-The Sentinel runtime ships as a container you run on a computer near your robot. In most cases we provide a tuned `robot.yaml` config for your hardware — you add it, run the launcher, and drive.
+The Sentinel runtime runs as a container on the computer connected to your robot. This page installs the host dependencies and launcher. Robot configuration is a separate step.
 
 <Note>
   **Latest version:** `0.11.0`. Versions below `0.7.0` are no longer supported and cannot be used. `0.7.0` introduced major breaking changes — configs made for earlier versions must be replaced. Contact us to update your config.
 </Note>
 
-## Overview
-
-Sentinel is a modular, container-based runtime for robot teleoperation. It supports multiple deployment configurations — on-robot and companion-computer setups — and is designed to be flexible across hardware targets.
-
 ## Requirements
 
-**Platform**
-- Ubuntu 22.04 or 24.04 (x86)
-- NVIDIA GPU with CUDA 13+ *or* a Jetson device running L4T R36+ (JetPack 6.2.x)
+Choose the container that matches the computer connected to your robot.
 
-**Dependencies**
+| Container tag | Computer | GPU support | Host software |
+| --- | --- | --- | --- |
+| `amd64` | x86-64 computer | CPU only | Ubuntu 22.04 or 24.04 |
+| `arm64` | ARM64 computer | CPU only | Ubuntu 22.04 or 24.04 |
+| `amd64-cu13` | x86-64 computer with a discrete NVIDIA GPU | CUDA 13 and NVENC | Ubuntu 22.04 or 24.04, a CUDA 13-compatible NVIDIA driver, and NVIDIA Container Toolkit |
+| `jp6.2` | NVIDIA Jetson Orin | Jetson GPU and NVENC | JetPack 6.2 or later and NVIDIA Container Toolkit |
+
+<Note>
+  There is no general-purpose ARM64 CUDA container. Use `jp6.2` for NVIDIA Jetson hardware. Use `arm64` for other ARM64 computers.
+</Note>
+
+<Tip>
+  Use `amd64-cu13` or `jp6.2` when the computer has supported NVIDIA hardware. NVENC provides better video quality and encoding performance than CPU encoding for the same compute budget.
+</Tip>
+
+### Required on every platform
+
 - [Docker Engine v27+](https://docs.docker.com/engine/install/ubuntu/)
-- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
-- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) — we recommend installing via snap
+- Python 3 with [PyYAML](https://pypi.org/project/PyYAML/) — the launcher uses it to read the license key from the config: `python3 -m pip install pyyaml`
 - 10 GB of free space on the root filesystem
-- A valid `robot.yaml` config file
+
+### Required for NVIDIA platforms
+
+Install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) when using `amd64-cu13` or `jp6.2`.
+
+- For `amd64-cu13`, install an NVIDIA driver compatible with CUDA 13 and confirm the GPU is visible with `nvidia-smi`.
+- For `jp6.2`, install JetPack 6.2 or later. JetPack provides the CUDA and Jetson multimedia components used for hardware video encoding.
 
 ## Setup
 
 <Steps>
   <Step title="Create a local Sentinel folder">
-    On your teleop companion computer, create a clean folder to hold your config file (`robot.yaml`) and the launcher script (`run_sentinel.sh`):
+    On the computer connected to your robot, create a folder for the Sentinel launcher:
 
     ```shell
     mkdir -p ~/sentinel
     cd ~/sentinel
-    ```
-  </Step>
-
-  <Step title="Add your robot config file">
-    Save the config we provided as `robot.yaml` in this folder. The provided config has a placeholder license key you'll replace below.
-
-    ```shell
-    ls -la ~/sentinel
-    # should include: robot.yaml
     ```
   </Step>
 
@@ -66,9 +72,9 @@ Sentinel is a modular, container-based runtime for robot teleoperation. It suppo
     if [[ -z "$CONFIG_FILE" ]]; then
         cat >&2 <<EOF
     Usage: $0 <config_file> [version] [neck_calibration_file] [container_name]
-      $0 /abs/path/yam_dual.yaml 0.7.0-amd64
-      $0 /abs/path/cfg.yaml      0.7.0-jp6.2 /abs/path/neck_calibration.json
-      $0 /abs/path/cfg.yaml      0.7.0-jp6.2 /abs/path/neck_calibration.json my-name
+      $0 /abs/path/yam_dual.yaml 0.11.0-amd64-cu13
+      $0 /abs/path/cfg.yaml      0.11.0-jp6.2 /abs/path/neck_calibration.json
+      $0 /abs/path/cfg.yaml      0.11.0-jp6.2 /abs/path/neck_calibration.json my-name
     EOF
         exit 1
     fi
@@ -155,68 +161,25 @@ Sentinel is a modular, container-based runtime for robot teleoperation. It suppo
     chmod +x run_sentinel.sh
     ```
 
-    Your folder should now contain `robot.yaml` and `run_sentinel.sh`.
-  </Step>
-
-  <Step title="Get a license key">
-    Your `robot.yaml` ships with a placeholder key:
-
-    ```yaml
-    system:
-      license_key: "PLACEHOLDER_KEY"
-    ```
-
-    Generate a live key in the [Avea Robotics dashboard](https://dashboard.avearobotics.com/dashboard/robots) → **Add Robot**:
-
-    <Frame>
-      <img src="/images/dashboard-add-robot.png" alt="The Robots page of the Avea dashboard with the Add Robot button highlighted" />
-    </Frame>
-
-    Then replace the placeholder:
-
-    ```yaml
-    system:
-      license_key: "lk_c41d041c-..."
-      enable_dataset_recording: true
-    ```
-  </Step>
-
-  <Step title="Run Sentinel">
-    Pick a version and platform tag and launch:
-
-    ```shell
-    cd ~/sentinel
-    ./run_sentinel.sh ./robot.yaml 0.11.0-amd64-cu13
-    ```
-
-    Optionally include a neck calibration file (absolute path required):
-
-    ```shell
-    ./run_sentinel.sh ./robot.yaml 0.11.0-amd64-cu13 /absolute/path/to/neck_calibration.json
-    ```
-
-    Once it's running, open [Sentinel XR Teleoperation](http://app.avearobotics.com) on your Meta Quest 3 / 3S to control your robot.
+    Your folder should now contain `run_sentinel.sh`.
   </Step>
 </Steps>
 
-## Supported platform tags
+## Update Sentinel
 
-- `amd64-cu13` — x86 CPU + NVIDIA discrete GPU (CUDA 13+)
-- `jp6.2` — Jetson Orin running JetPack 6.2.1 or 6.2.2
-- `amd64` — x86 CPU only
-- `arm64` — arm64 computer only
+To move to a new version, remove the old runtime images first, then start the launcher with the new version tag — it pulls the image automatically:
+
+```shell
+docker images --format '{{.Repository}}:{{.Tag}}' | grep sentinel-runtime | xargs -r docker rmi
+./run_sentinel.sh /absolute/path/to/robot.yaml 0.11.0-amd64-cu13
+```
 
 <Warning>
   **Always prune old image versions before pulling a new one.** Sentinel is safety-critical — running mismatched versions can produce undefined behavior.
 </Warning>
 
-## Next steps
+## Next step
 
-<CardGroup cols={2}>
-  <Card title="Configuration reference" icon="gears" href="/configuration/reference">
-    Understand the sections of your `robot.yaml`.
-  </Card>
-  <Card title="Example configs" icon="file-code" href="/configuration/examples">
-    Known-good `robot.yaml` configs for common hardware setups.
-  </Card>
-</CardGroup>
+<Card title="Configure your robot" icon="sliders" href="/getting-started/configure-robot" horizontal>
+  Build the robot.yaml the launcher needs, starting from a template.
+</Card>

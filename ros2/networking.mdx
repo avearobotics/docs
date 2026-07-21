@@ -1,0 +1,97 @@
+---
+title: "DDS and container networking"
+description: "Make ROS 2 topics discoverable between Sentinel, containers, and robot computers."
+---
+
+The generic robot adapter and your controller must share a ROS 2 domain and a discoverable DDS network. Verify networking before debugging topics or control code.
+
+## Current topology
+
+The Sentinel container runs with a configured `ROS_DOMAIN_ID` and Cyclone DDS by default. The released generic robot adapter uses that domain. Its command publishers and state subscribers do not create a second DDS participant in an arbitrary source domain.
+
+Use one of these topologies:
+
+| Topology | Setup |
+| --- | --- |
+| Driver on the Sentinel computer | Run both sides with the same domain and host networking |
+| Driver in another container on the same computer | Use host networking for both containers and the same domain |
+| Driver on another computer | Use the same domain, enable non-local discovery, and select the network interface or discovery peers |
+| Compressed camera in another domain | Use the dedicated compressed-camera domain bridge |
+
+## Baseline environment
+
+Set these values on both sides before starting ROS 2 nodes:
+
+```bash
+export ROS_DOMAIN_ID=67
+export ROS_LOCALHOST_ONLY=0
+```
+
+Use the domain configured for your robot if it is not `67`. Environment changes do not update processes that are already running. Restart the ROS 2 daemon after changing the domain or DDS configuration.
+
+```bash
+ros2 daemon stop
+ros2 topic list
+```
+
+## Cyclone DDS example
+
+Use an explicit interface when the computer has Ethernet, Wi-Fi, VPN, and container interfaces. Add a peer when multicast discovery is unavailable or unreliable.
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<CycloneDDS xmlns="https://cdds.io/config">
+  <Domain id="any">
+    <General>
+      <AllowMulticast>spdp</AllowMulticast>
+      <Interfaces>
+        <NetworkInterface name="eth0" priority="0" />
+      </Interfaces>
+    </General>
+    <Discovery>
+      <ParticipantIndex>auto</ParticipantIndex>
+      <MaxAutoParticipantIndex>1000</MaxAutoParticipantIndex>
+      <Peers>
+        <Peer address="192.168.50.2" />
+      </Peers>
+    </Discovery>
+  </Domain>
+</CycloneDDS>
+```
+
+```bash
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+export CYCLONEDDS_URI=file:///absolute/path/to/cyclonedds.xml
+```
+
+Replace `eth0` and the peer address with the actual robot-network values.
+
+## Fast DDS
+
+Fast DDS can interoperate only when discovery and transport are configured for the network in use. Do not restrict discovery to localhost when Sentinel runs in another container or on another computer. For initial integration, running Cyclone DDS on both sides removes a major source of configuration differences.
+
+## Verify from the Sentinel environment
+
+Run every check from the same container, domain, and DDS configuration that will run Sentinel.
+
+<Steps>
+  <Step title="Confirm the environment">
+    Check `ROS_DOMAIN_ID`, `ROS_LOCALHOST_ONLY`, `RMW_IMPLEMENTATION`, and any DDS configuration URI.
+  </Step>
+  <Step title="Confirm discovery">
+    Run `ros2 node list` and `ros2 topic list`. Allow several discovery intervals on a cross-computer link.
+  </Step>
+  <Step title="Confirm measured state">
+    Run `ros2 topic hz /robot/joint_states` and `ros2 topic echo /robot/joint_states --once`.
+  </Step>
+  <Step title="Confirm QoS">
+    Run `ros2 topic info --verbose /robot/joint_states` and compare the publisher with the adapter configuration.
+  </Step>
+  <Step title="Confirm command discovery">
+    Start the controller subscription, then inspect the command topic with `ros2 topic info --verbose`.
+  </Step>
+</Steps>
+
+<Warning>
+  Seeing a topic name is not enough. Confirm that samples arrive and that QoS is compatible before arming the robot.
+</Warning>

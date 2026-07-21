@@ -1,0 +1,509 @@
+---
+title: "Using your data"
+description: "Read Sentinel MCAP recordings, message schemas, and episode metadata."
+---
+
+Sentinel records each teleoperation episode as a ROS 2 bag using MCAP storage. A recording can contain robot state, commands, XR input, encoded camera frames, task context, labels, and system events.
+
+The exact topic set comes from the robot's data-collection configuration. Inspect the bag instead of assuming every setup records the same topics.
+
+```bash
+ros2 bag info /datasets/session_20260718_143052/episode_001.finalized
+```
+
+## Directory structure
+
+Sentinel groups episodes into timestamped recording sessions:
+
+```text
+datasets/
+└── session_20260718_143052/
+    ├── episode_001.finalized/
+    │   ├── episode_001_0.mcap
+    │   └── metadata.yaml
+    └── episode_002.finalized/
+        ├── episode_002_0.mcap
+        ├── episode_002_1.mcap
+        └── metadata.yaml
+```
+
+- Session names use `session_YYYYMMDD_HHMMSS`.
+- Episode numbers are zero-padded within a session.
+- An active recording uses the `.in_progress` suffix.
+- A completed recording normally uses the `.finalized` suffix.
+- MCAP files split when they reach the configured maximum size. The common default is 1 GiB.
+
+<Note>
+  Failed-episode handling is configurable. A failed episode can be finalized, deleted, or left in progress for manual review. A discarded episode is deleted.
+</Note>
+
+## Common recorded topics
+
+Topic names that contain `{namespace}` or `{camera_name}` vary by configuration.
+
+| Data | Typical topic | Message type |
+| --- | --- | --- |
+| XR tracking and controls | `/sentinel/xr/input/xr_input` | `sentinel_msgs/msg/XRInput` |
+| System state | `/{namespace}/sentinel/system/state/current` | `sentinel_msgs/msg/SystemState` |
+| Measured joints | `/{namespace}/sentinel/robot/state/joint_states/measured` | `sensor_msgs/msg/JointState` |
+| Joint commands | Configuration-specific | `trajectory_msgs/msg/JointTrajectory` or `std_msgs/msg/Float64MultiArray` |
+| Gripper state | `/{namespace}/sentinel/robot/state/gripper_states/measured` | `sentinel_msgs/msg/GripperState` |
+| Gripper commands | `/{namespace}/sentinel/control/commands/gripper` | `sentinel_msgs/msg/GripperCommand` |
+| Encoded camera frames | `/sentinel/vision/output/{camera_name}/encoded` | `sentinel_msgs/msg/EncodedImage` |
+| Task and operator context | `/sentinel/agent/session_context` | `sentinel_msgs/msg/SessionContext` |
+| Episode and system events | `/sentinel/events` | `sentinel_msgs/msg/Event` |
+
+Sentinel always records the session-context and event topics. They preserve task, operator, label, and event changes inside the MCAP timeline.
+
+## Message definitions
+
+All messages use ROS 2 CDR serialization. Standard robot state and command topics use standard ROS 2 message packages. Sentinel-specific topics use `sentinel_msgs`.
+
+<AccordionGroup>
+  <Accordion title="XRInput and controller messages" id="xr-input">
+    Topic: `/sentinel/xr/input/xr_input`
+
+    `XRInput` puts headset, controller, skeleton, hand, button, and joystick data under one timestamp.
+
+    ```text XRInput.msg
+    std_msgs/Header header
+    sentinel_msgs/XRTransform[] transforms
+    sentinel_msgs/ButtonStates buttons
+    sentinel_msgs/JoystickInput joystick
+    ```
+
+    ```text XRTransform.msg
+    string name
+    geometry_msgs/Transform transform
+    float32 confidence
+    bool is_tracked
+    ```
+
+    Common transform names include `controller_left`, `controller_right`, `hmd`, and tracked skeleton or hand frames. `confidence` ranges from `0.0` to `1.0`.
+
+    ```text ButtonStates.msg
+    bool a_button
+    bool b_button
+    bool x_button
+    bool y_button
+    bool menu_button
+
+    float32 left_trigger
+    float32 right_trigger
+    float32 left_grip
+    float32 right_grip
+    ```
+
+    Trigger and grip values range from `0.0` when released to `1.0` when fully pressed.
+
+    ```text JoystickInput.msg
+    float32 left_x
+    float32 left_y
+    float32 right_x
+    float32 right_y
+    ```
+
+    Joystick axes range from `-1.0` to `1.0`.
+  </Accordion>
+
+  <Accordion title="SystemState" id="system-state">
+    Typical topic: `/{namespace}/sentinel/system/state/current`
+
+    ```text SystemState.msg
+    uint8 DISARMED=0
+    uint8 ARMING=1
+    uint8 ARMED=2
+    uint8 CALIBRATING=3
+    uint8 HOMING=4
+    uint8 TELEOP_ACTIVE=5
+    uint8 E_STOP=6
+
+    uint8 state
+    string state_name
+    builtin_interfaces/Time entered_at
+    ```
+
+    `entered_at` is the time at which the system entered the reported state.
+  </Accordion>
+
+  <Accordion title="JointState and joint commands" id="joint-messages">
+    Typical measured-state topic: `/{namespace}/sentinel/robot/state/joint_states/measured`
+
+    ```text sensor_msgs/msg/JointState
+    std_msgs/Header header
+    string[] name
+    float64[] position
+    float64[] velocity
+    float64[] effort
+    ```
+
+    Positions use radians. Velocities use radians per second. The `effort` field is optional and depends on the robot adapter.
+
+    Command messages depend on the configured adapter. Common types are `trajectory_msgs/msg/JointTrajectory` and `std_msgs/msg/Float64MultiArray`. Preserve the joint names or configured array order when converting a dataset.
+  </Accordion>
+
+  <Accordion title="GripperState and GripperCommand" id="gripper-messages">
+    Typical state topic: `/{namespace}/sentinel/robot/state/gripper_states/measured`
+
+    ```text GripperState.msg
+    std_msgs/Header header
+
+    float64 left_opening
+    float64 left_speed
+    float64 left_force
+
+    float64 right_opening
+    float64 right_speed
+    float64 right_force
+
+    string result
+    ```
+
+    Opening, speed, and force use normalized values from `0.0` to `100.0`. `result` contains an adapter-provided status such as `success` or `fail_motor`.
+
+    Typical command topic: `/{namespace}/sentinel/control/commands/gripper`
+
+    ```text GripperCommand.msg
+    std_msgs/Header header
+
+    string grasp_type
+    float64 command
+    string hand
+
+    float64 speed
+    float64 force
+    float64 max_effort
+    ```
+
+    `command` is `0.0` when fully closed and `100.0` when fully open. `hand` is `left`, `right`, or `both`. Optional `speed` and `force` values use the normalized `0`–`100` range.
+  </Accordion>
+
+  <Accordion title="EncodedImage" id="encoded-image">
+    Typical topic: `/sentinel/vision/output/{camera_name}/encoded`
+
+    ```text EncodedImage.msg
+    std_msgs/Header header
+
+    string encoding
+    string profile
+    string level
+    uint32 width
+    uint32 height
+    uint32 bitrate
+    uint32 framerate
+    string color_space
+    string color_range
+    uint32 gop_size
+    uint32 bframes
+
+    uint8 FRAME_TYPE_UNKNOWN=0
+    uint8 FRAME_TYPE_IDR=1
+    uint8 FRAME_TYPE_I=2
+    uint8 FRAME_TYPE_P=3
+    uint8 FRAME_TYPE_B=4
+    uint8 frame_type
+
+    uint64 sequence_number
+    uint64 pts_ns
+    uint64 dts_ns
+    uint32 frame_duration_ns
+    uint64 encode_timestamp_ns
+    uint32 encode_duration_us
+    uint32 frame_size_bytes
+
+    uint32 rtp_timestamp
+    uint32 payload_type
+    uint32 ssrc
+
+    uint8[] codec_config_data
+    uint8[] data
+    ```
+
+    Supported encoding identifiers include `h264`, `h265`, `vp8`, `vp9`, and `av1`. `header.stamp` is the original capture timestamp. Use `pts_ns` for presentation order and `dts_ns` for decode order. Initialize the decoder with `codec_config_data` and begin on an IDR frame when seeking into a stream.
+  </Accordion>
+
+  <Accordion title="SessionContext" id="session-context">
+    Topic: `/sentinel/agent/session_context`
+
+    ```text SessionContext.msg
+    string task_id
+    int32 task_version
+    string prompt
+    string operator_id
+    builtin_interfaces/Time issued_at
+    ```
+
+    Sentinel snapshots this context when an episode begins. An empty `task_id` means no task is selected. The topic uses transient-local durability so a recording captures the most recent context even when it was published before the episode started.
+  </Accordion>
+
+  <Accordion title="Event" id="event-message">
+    Topic: `/sentinel/events`
+
+    ```text Event.msg
+    std_msgs/Header header
+    string node_name
+    uint8 level
+
+    string name
+    string status
+    string category
+    string event_id
+    uint16 schema_version
+
+    string message
+    diagnostic_msgs/KeyValue[] data
+    string[] measure_names
+    float64[] measure_values
+
+    uint8 DEBUG=0
+    uint8 INFO=1
+    uint8 WARNING=2
+    uint8 ERROR=3
+    ```
+
+    Use `name`, `status`, and `data` for structured episode or system events. `message` contains optional human-readable detail. Numeric measures use parallel `measure_names` and `measure_values` arrays.
+  </Accordion>
+</AccordionGroup>
+
+## Decode recorded video
+
+The following ROS 2 node decodes `sentinel_msgs/msg/EncodedImage` with PyAV and republishes each decoded frame as `sensor_msgs/msg/CompressedImage`.
+
+Install the Python dependencies in the ROS 2 environment that contains `sentinel_msgs`:
+
+```bash
+python3 -m pip install av Pillow
+```
+
+<Accordion title="encoded_image_decoder.py" id="video-decoder-node" defaultOpen>
+
+```python encoded_image_decoder.py
+#!/usr/bin/env python3
+
+from io import BytesIO
+
+import av
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import (
+    DurabilityPolicy,
+    HistoryPolicy,
+    QoSProfile,
+    ReliabilityPolicy,
+)
+from sensor_msgs.msg import CompressedImage
+from sentinel_msgs.msg import EncodedImage
+
+
+CODECS = {
+    "h264": "h264",
+    "h265": "hevc",
+    "vp8": "vp8",
+    "vp9": "vp9",
+    "av1": "av1",
+}
+
+
+class EncodedImageDecoder(Node):
+    def __init__(self) -> None:
+        super().__init__("encoded_image_decoder")
+
+        self.declare_parameter(
+            "input_topic", "/sentinel/vision/output/right_wrist/encoded"
+        )
+        self.declare_parameter(
+            "output_topic", "/sentinel/vision/output/right_wrist/decoded/compressed"
+        )
+
+        input_topic = self.get_parameter("input_topic").value
+        output_topic = self.get_parameter("output_topic").value
+
+        video_qos = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            durability=DurabilityPolicy.VOLATILE,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=5,
+        )
+
+        self.publisher = self.create_publisher(
+            CompressedImage, output_topic, video_qos
+        )
+        self.subscription = self.create_subscription(
+            EncodedImage, input_topic, self.decode, video_qos
+        )
+
+        self.decoder = None
+        self.stream_key = None
+        self.frames_decoded = 0
+
+        self.get_logger().info(f"Decoding {input_topic}")
+        self.get_logger().info(f"Publishing {output_topic}")
+
+    def decode(self, msg: EncodedImage) -> None:
+        codec_name = CODECS.get(msg.encoding.lower())
+        if codec_name is None:
+            self.get_logger().error(f"Unsupported encoding: {msg.encoding}")
+            return
+
+        stream_key = (codec_name, msg.width, msg.height)
+        if stream_key != self.stream_key:
+            self.decoder = av.CodecContext.create(codec_name, "r")
+            self.stream_key = stream_key
+            self.get_logger().info(
+                f"Initialized {codec_name} decoder for {msg.width}x{msg.height}"
+            )
+
+        packet = av.Packet(bytes(msg.data))
+        packet.pts = msg.pts_ns
+        packet.dts = msg.dts_ns if msg.dts_ns else msg.pts_ns
+
+        try:
+            frames = self.decoder.decode(packet)
+        except Exception as error:
+            # Playback may begin before an IDR frame. Decoding recovers at the
+            # next keyframe.
+            self.get_logger().debug(f"Waiting for a decodable frame: {error}")
+            return
+
+        for frame in frames:
+            jpeg = BytesIO()
+            frame.to_image().save(jpeg, format="JPEG", quality=90)
+
+            output = CompressedImage()
+            output.header = msg.header
+            output.format = "jpeg"
+            output.data = jpeg.getvalue()
+            self.publisher.publish(output)
+
+            self.frames_decoded += 1
+            if self.frames_decoded == 1:
+                self.get_logger().info("Published the first decoded frame")
+
+
+def main() -> None:
+    rclpy.init()
+    node = EncodedImageDecoder()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    main()
+```
+
+</Accordion>
+
+Start the decoder with the encoded topic from the bag:
+
+```bash
+python3 encoded_image_decoder.py --ros-args \
+  -p input_topic:=/sentinel/vision/output/right_wrist/encoded \
+  -p output_topic:=/sentinel/vision/output/right_wrist/decoded/compressed
+```
+
+Play the episode in another terminal:
+
+```bash
+ros2 bag play /datasets/session_20260718_001151/episode_003.finalized
+```
+
+View `/sentinel/vision/output/right_wrist/decoded/compressed` with RViz, `rqt_image_view`, or another `sensor_msgs/msg/CompressedImage` subscriber.
+
+<Note>
+  A decoder needs an IDR frame before it can reconstruct dependent frames. If playback starts between keyframes, the first few packets may not produce an image. Decoding begins when the next IDR frame arrives.
+</Note>
+
+## Episode metadata
+
+All episode summary metadata is stored in the bag's standard `metadata.yaml` file. ROS bag information and Sentinel attribution are both children of `rosbag2_bagfile_information`. Time-varying task context and events remain as messages inside the MCAP timeline.
+
+```yaml
+rosbag2_bagfile_information:
+  version: 5
+  storage_identifier: mcap
+  duration:
+    nanoseconds: 18484502184
+  starting_time:
+    nanoseconds_since_epoch: 1784333771770314226
+  message_count: 15583
+  topics_with_message_count:
+    - topic_metadata:
+        name: /sentinel/events
+        type: sentinel_msgs/msg/Event
+        serialization_format: cdr
+      message_count: 33
+    - topic_metadata:
+        name: /sentinel/vision/output/overhead/encoded
+        type: sentinel_msgs/msg/EncodedImage
+        serialization_format: cdr
+      message_count: 541
+  compression_format: ""
+  compression_mode: ""
+  relative_file_paths:
+    - episode_003_0.mcap
+  files:
+    - path: episode_003_0.mcap
+      starting_time:
+        nanoseconds_since_epoch: 1784333771770314226
+      duration:
+        nanoseconds: 18484502184
+      message_count: 15583
+  custom_data:
+    recording_session_id: session_20260718_001151
+    episode_seq: 3
+    started_at: 2026-07-18T00:16:11Z
+    ended_at: 2026-07-18T00:16:30Z
+    outcome: success
+```
+
+Each entry in `topics_with_message_count` also includes the recorded publisher QoS profile. The shortened example above shows two topics; the real list contains every topic present in the bag.
+
+### Standard rosbag fields
+
+| Field | Meaning |
+| --- | --- |
+| `duration.nanoseconds` | Total recorded duration |
+| `starting_time.nanoseconds_since_epoch` | Bag start time as nanoseconds since the Unix epoch |
+| `message_count` | Total number of messages across all recorded topics |
+| `topics_with_message_count` | Topic names, ROS types, serialization formats, QoS profiles, and per-topic message counts |
+| `relative_file_paths` | MCAP files that belong to the episode |
+| `files` | Per-file start time, duration, and message count |
+
+### Sentinel fields in `custom_data`
+
+| Field | Meaning |
+| --- | --- |
+| `recording_session_id` | Recording session that contains the episode |
+| `episode_seq` | Episode number within that session |
+| `started_at` | UTC episode start time in ISO 8601 format |
+| `ended_at` | UTC episode end time in ISO 8601 format |
+| `outcome` | Episode outcome, such as `success` or `failure` |
+| `task_id` | Selected task identifier, when present |
+| `task_version` | Version of the selected task |
+| `prompt` | Task prompt captured at episode start |
+| `operator_id` | Authenticated operator attributed to the episode, when present |
+
+Task and operator fields are optional. They appear in `custom_data` when an episode starts with an active task or authenticated operator context.
+
+## Preserve alignment when converting
+
+- Use source message timestamps rather than file order alone.
+- Keep `recording_session_id` and `episode_seq` with every converted episode.
+- Preserve task context and structured events instead of reconstructing labels from video.
+- Use `sequence_number` to detect dropped encoded video frames.
+- Ignore unknown metadata fields so readers remain compatible with additive schema changes.
+
+<Warning>
+  Do not treat an `.in_progress` directory as a completed episode. It may still be recording or may have been retained after a failed finalization.
+</Warning>
+
+## Next step
+
+<Card title="Review upcoming workflows" icon="clock" href="/coming-soon" horizontal>
+  See which autonomy, fleet, and API workflows are still in development.
+</Card>
