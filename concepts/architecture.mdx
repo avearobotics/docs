@@ -1,0 +1,67 @@
+---
+title: "Architecture"
+description: "How the Sentinel runtime, the operator app, and the cloud fit together."
+---
+
+A Sentinel deployment has three parts:
+
+```text
+operator app (headset) ←— WebRTC: video, control, haptics —→ Sentinel runtime ←→ robot + cameras
+                                                                    |
+                                                            outbound connection
+                                                                    ↓
+                                                             Sentinel cloud
+```
+
+- The **runtime** runs on the computer connected to the robot. It drives the robot, captures video, and records data.
+- The **operator app** runs on a Meta Quest headset. It shows the camera views and sends the operator's motion to the runtime.
+- The **cloud** manages the robot fleet, operator sign-in, and session setup. Live teleoperation traffic flows between the operator and the robot, not through the cloud application.
+
+## The runtime
+
+One runtime drives one robot. A single configuration file declares everything the runtime starts. See [Configure your robot](/getting-started/configure-robot).
+
+The runtime is a set of cooperating components:
+
+| Component | Responsibility |
+| --- | --- |
+| Robot adapter | Connects Sentinel to the robot hardware through the vendor interface or ROS 2 |
+| Camera pipeline | Captures, encodes, and publishes video — see [Streaming](/concepts/streaming) |
+| Retargeting | Converts operator hand and head motion into robot targets, with inverse kinematics for the arms |
+| Control and safety | Smooths motion, enforces joint and torque limits, and stops the robot when commands or state go stale |
+| State manager | Runs the system state machine — see [robot states](/operate/teleoperation#robot-states) |
+| Recording | Writes episodes as MCAP files — see [Using your data](/operate/datasets) |
+| Cloud gateway | Keeps the outbound connection to the cloud for sessions and telemetry |
+
+## Built on ROS 2
+
+The runtime components are ROS 2 nodes. They exchange data on ROS 2 topics, and the state manager controls them through the ROS 2 lifecycle.
+
+This design is visible from the outside:
+
+- Recordings are standard ROS 2 bags. Any MCAP or ROS 2 tool can read them.
+- An existing ROS 2 robot connects through topics, without a custom adapter. See [ROS 2 integration](/ros2/overview).
+- Camera frames, robot state, and commands are inspectable with standard ROS 2 tools during a session.
+
+## The control path
+
+During teleoperation, operator input flows through a fixed chain:
+
+```text
+headset tracking → retargeting → inverse kinematics → smoothing → safety limits → robot adapter → robot
+```
+
+Each stage is independent of the robot model. The robot adapter and the configuration supply the robot-specific parts: kinematics, joint limits, and the command interface. This is why one runtime supports many robot types.
+
+## The video path
+
+Cameras follow the reverse direction: capture on the robot computer, encode, then stream to the operator and write to the recording. See [Streaming](/concepts/streaming) for the full pipeline.
+
+<Columns cols={2}>
+  <Card title="Streaming" icon="video" href="/concepts/streaming">
+    How video is captured, encoded, and streamed.
+  </Card>
+  <Card title="Teleoperation" icon="gamepad" href="/operate/teleoperation">
+    Robot states, controls, and the session flow.
+  </Card>
+</Columns>

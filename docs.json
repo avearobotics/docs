@@ -76,6 +76,13 @@
         ]
       },
       {
+        "group": "Concepts",
+        "pages": [
+          "concepts/architecture",
+          "concepts/streaming"
+        ]
+      },
+      {
         "group": "API",
         "pages": [
           "api/session-actions"
