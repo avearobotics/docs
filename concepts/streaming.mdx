@@ -1,0 +1,109 @@
+---
+title: "Streaming"
+description: "How the robot and the operator connect, and how video and control data stream between them."
+---
+
+Everything that moves between the robot and the operator during a session — camera video, teleoperation input, telemetry — travels over one low-latency connection.
+
+Sentinel uses a flavor of the widely used [WebRTC](https://webrtc.org/) protocol, which keeps it compatible with a wide variety of applications and devices. But off-the-shelf WebRTC isn't built for the real-time control that robot teleoperation requires, so Sentinel replaces the parts that matter: a custom congestion controller and encoders that adapt live.
+
+The following sections walk through what happens from the moment an operator connects to a robot to the moment their motion is driving it.
+
+## The connection
+
+The robot runtime initiates every connection. It opens no inbound ports and accepts no incoming connections.
+
+The runtime keeps an outbound, encrypted WebSocket connection to the Sentinel cloud. The cloud uses it to pair an operator with the robot and to exchange the connection details for the session. After setup, live traffic flows between the operator and the robot over WebRTC, not through the cloud application.
+
+WebRTC tries every available path and selects the best one: a direct peer-to-peer connection when the networks allow it, which gives the lowest latency, or a relay (TURN) when a direct path is not possible, which works with some added latency.
+
+The runtime reports the selected path in its logs and metrics, so you can see whether a session is direct or relayed.
+
+### Firewall requirements
+
+The robot network needs outbound access only:
+
+- Outbound HTTPS/WSS to the cloud endpoints, for sessions and telemetry.
+- Outbound UDP, for WebRTC media. This is the preferred transport.
+- When the network blocks UDP, the connection falls back to a relay over TCP/TLS. Expect higher latency on this path.
+
+There are no inbound ports to open and no fixed port to forward.
+
+<Note>
+  Keep the robot computer's clock synchronized with NTP. Sentinel measures the clock offset between the robot and the operator, and accurate host time keeps video, input, and telemetry aligned.
+</Note>
+
+## Balancing video latency and stability
+
+Video flows from the robot to the operator, and it has to do two things at once: arrive fast enough that the operator can react, and stay stable enough that the operator can trust what they see. Everything in the video pipeline — encoding, congestion control, recovery — is built around that balance.
+
+### Encoding for low latency
+
+Encoders compress each frame before it leaves the robot computer:
+
+| Encoder | Output | Typical use |
+| --- | --- | --- |
+| x264 | Software-encoded H.264 video | Live streaming without a GPU |
+| NVENC | Hardware-encoded H.264 / H.265 video | Live streaming on NVIDIA GPUs |
+| Depth | Lossless depth frames or depth as color video | Depth data in recordings and depth views for the operator |
+| Raw | Unencoded frames | Consumers that handle encoding themselves |
+
+{/* TODO: animation — one camera feeding multiple encoders at once (live stream for the operator + depth stream for the recording) */}
+
+The streaming profile is tuned for latency, not file size. It uses no [B-frames](https://en.wikipedia.org/wiki/Video_compression_picture_types) and no lookahead, so a frame never waits for a later frame before it can be encoded or decoded.
+
+One camera can feed more than one encoder at the same time — for example, a low-latency H.264 stream for the operator and a lossless depth stream for the recording. Encoded frames publish as `sentinel_msgs/EncodedImage` on `/sentinel/vision/output/{camera_name}/encoded`, and episode recordings store these same topics. See [Using your data](/operate/datasets).
+
+When an encoder produces frames faster than the network or the pipeline can drain them, frames are dropped at the queue. Backpressure never grows into delay.
+
+### Congestion control that predicts, not reacts
+
+Every stream tunes itself through a live feedback loop. The operator app continuously reports what the network actually delivered — which packets arrived, which were lost, and how long they took — and Sentinel's congestion controller turns that feedback directly into encoder behavior. Frame rate, quality, and bitrate all shift mid-stream; the pipeline is never rebuilt to change quality.
+
+What makes the controller different is *when* it acts. Packet loss is a lagging signal: by the time frames start dropping, the network has already been congested for a while. So the controller watches delay instead. Packets beginning to queue inside the network are the earliest warning of congestion, and the controller backs the encoders off before anything is lost — glass-to-glass latency stays stable instead of climbing as buffers fill.
+
+When several cameras stream at once, the controller splits the available bandwidth by priority, so the most important view keeps its bandwidth first.
+
+### Recovery without spikes
+
+Video recovers from loss with [keyframes](https://en.wikipedia.org/wiki/Key_frame#Video_compression), and keyframes are managed so they do not cause new congestion:
+
+- When the operator app loses video sync, it requests a keyframe (standard [PLI](https://datatracker.ietf.org/doc/html/rfc4585)/[FIR](https://datatracker.ietf.org/doc/html/rfc5104)). The encoder answers with a fresh one. Requests are debounced, so a burst of loss produces one keyframe, not many.
+- When the controller cuts the bitrate sharply, it couples the cut to a keyframe or intra-refresh. The stream converges to the lower rate at once, without a keyframe bitrate spike at the worst possible moment.
+- Intra-refresh spreads keyframe data across several frames instead of one large frame, which keeps the packet rate smooth during recovery.
+
+## Streaming data
+
+Control and telemetry travel on their own channel, separate from the video tracks. Every command the operator sends — head, hand, and controller tracking — is one message in a continuous stream.
+
+Commands follow the same principle as video: never wait for stale data. A late command is already obsolete, because a newer one is right behind it — so the robot discards anything older than the last command it applied and always acts on the freshest input. And if commands stop arriving altogether, a watchdog holds the robot in place — see [when the network drops](#when-the-network-drops).
+
+The command channel opens before any video track, so control is live from the first moment of a session. Session telemetry and events share the same path, from the robot to the operator and the cloud.
+
+Under congestion, video and control degrade differently. Commands are tiny next to video, so when bandwidth tightens, the congestion controller sacrifices image quality first and the command stream keeps flowing.
+
+## When the network drops
+
+A network drop stops the robot safely and does not lose data:
+
+- **The robot holds position.** A watchdog in the control pipeline detects that commands stopped arriving and commands the robot to hold its current pose. The robot does not continue its last motion.
+- **Teleoperation stops.** The operator must start teleoperation again after the connection returns. Faults such as a stale robot-state stream move the system to `E_STOP` — see [robot states](/operate/teleoperation#robot-states).
+- **The recording survives.** Episodes are written to local disk, independent of the network. A drop does not corrupt the recording, and uploads resume when connectivity returns.
+- **The runtime reconnects on its own.** It rebuilds the connection when the operator returns, with retries and backoff. No manual restart is needed.
+
+<Warning>
+  Do not use the network or the headset as an emergency-stop path. Keep a physical emergency stop within reach whenever the robot can move.
+</Warning>
+
+## Watching stream quality
+
+The runtime publishes streaming metrics per session: packet loss, round-trip time and standing queue, frames sent and dropped, bytes on the wire, encoder utilization, and whether the connection is direct or relayed. Use these to distinguish a network problem from an encoder problem before changing camera settings.
+
+<Columns cols={2}>
+  <Card title="Architecture" icon="sitemap" href="/concepts/architecture">
+    How the runtime, the operator app, and the cloud fit together.
+  </Card>
+  <Card title="DDS networking" icon="network-wired" href="/ros2/networking">
+    Configure ROS 2 discovery and transport on the robot's local network.
+  </Card>
+</Columns>
