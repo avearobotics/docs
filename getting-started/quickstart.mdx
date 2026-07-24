@@ -12,7 +12,7 @@ This page takes a supported robot from nothing installed to a first teleoperatio
 - A Sentinel account with access to the [dashboard](https://dashboard.avearobotics.com/dashboard/robots)
 
 <Note>
-  Don't have a supported robot? Connect a robot through ROS 2 instead? Follow the same steps, but build your configuration from the [ROS 2 integration](/ros2/overview) before step 3.
+  Connecting your own ROS 2 stack? Complete the [ROS 2 integration checklist](/ros2/overview#integration-flow) before you create the Sentinel configuration in step 2.
 </Note>
 
 <Steps>
@@ -29,13 +29,13 @@ This page takes a supported robot from nothing installed to a first teleoperatio
 
     ```shell
     cd ~/sentinel
-    ./run_sentinel.sh /absolute/path/to/robot.yaml 0.11.0-amd64-cu13
+    ./run_sentinel.sh /absolute/path/to/robot.yaml 0.13.0-amd64-cu13
     ```
 
     The launcher authenticates with the license key from the config, pulls the runtime image, and starts the container. A successful start prints a line like:
 
     ```text
-    sentinel-runtime 0.11.0-amd64-cu13  cuda/amd64  <registry>/sentinel-runtime:0.11.0-amd64-cu13  (sentinel-runtime)
+    sentinel-runtime 0.13.0-amd64-cu13  cuda/amd64  <registry>/sentinel-runtime:0.13.0-amd64-cu13  (sentinel-runtime)
     ```
 
     followed by the runtime logs.

@@ -1,14 +1,20 @@
 ---
-title: "I2RT adapter example"
-description: "Wrap an I2RT-controlled arm with the ROS 2 topics Sentinel expects."
+title: "Vendor SDK adapter example"
+sidebarTitle: "Vendor SDK adapter"
+description: "Wrap a vendor hardware SDK with the ROS 2 state and command interfaces Sentinel expects."
 ---
 
-This example keeps the I2RT hardware loop in a small ROS 2 node. The node publishes measured `JointState` continuously and accepts named `JointTrajectory` commands from Sentinel.
+Use this pattern when a vendor SDK owns the hardware but does not expose the ROS 2 interfaces Sentinel needs. Keep the hardware loop in a small ROS 2 node:
 
-The same pattern works for other Python SDKs: initialize the hardware once, publish measured state on a timer, and convert each incoming command into the SDK's native call.
+| Direction | ROS 2 interface | Adapter responsibility |
+| --- | --- | --- |
+| Hardware → Sentinel | `sensor_msgs/msg/JointState` | Read measured state from the SDK and publish it continuously |
+| Sentinel → hardware | `trajectory_msgs/msg/JointTrajectory` | Validate named targets and convert them into the SDK's native command |
+
+The implementation below uses an I2RT-controlled arm as a concrete example. Apply the same boundary to another SDK: initialize the hardware once, keep state publication independent of commands, and convert each incoming target into the vendor API.
 
 <Warning>
-  Test this node without Sentinel first. The subscriber commands physical hardware. Add the limits, watchdog, fault handling, and emergency-stop integration required by your robot before use.
+  Test the adapter without Sentinel first. The subscriber commands physical hardware. Add the limits, command watchdog, fault propagation, and emergency-stop integration required by your robot before use.
 </Warning>
 
 ## Adapter node
@@ -149,3 +155,7 @@ The example shows the ROS boundary, not a complete safety controller. A producti
 - Hardware fault propagation
 - Gripper mapping when the robot has a gripper
 - Lifecycle or controller-manager integration when that support is released
+
+<Card title="Return to the integration checklist" icon="list-check" href="/ros2/overview#integration-flow" horizontal>
+  Connect cameras, create the Sentinel configuration, and validate before arming.
+</Card>

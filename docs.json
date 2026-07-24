@@ -14,6 +14,10 @@
     {
       "source": "/getting-started/choose-path",
       "destination": "/getting-started/supported-hardware"
+    },
+    {
+      "source": "/ros2/examples/i2rt-adapter",
+      "destination": "/ros2/examples/vendor-sdk-adapter"
     }
   ],
   "colors": {
@@ -44,17 +48,27 @@
           "getting-started/install",
           "getting-started/configure-robot",
           {
-            "group": "ROS 2 integration",
+            "group": "Extend your setup",
+            "expanded": true,
             "pages": [
-              "ros2/overview",
+              "hardware/immersive-neck"
+            ]
+          },
+          {
+            "group": "Connect with ROS 2",
+            "root": "ros2/overview",
+            "expanded": true,
+            "pages": [
+              "ros2/networking",
               "ros2/control-interface",
               "ros2/camera-interface",
-              "ros2/networking",
               {
-                "group": "Worked examples",
+                "group": "Integration examples",
+                "expanded": true,
                 "pages": [
+                  "ros2/examples/anvil-openarm-devbox",
                   "ros2/examples/ros2-control",
-                  "ros2/examples/i2rt-adapter"
+                  "ros2/examples/vendor-sdk-adapter"
                 ]
               }
             ]

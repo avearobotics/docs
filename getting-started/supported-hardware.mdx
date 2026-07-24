@@ -27,8 +27,13 @@ Supported robots have a ready-made integration for their standard control interf
 | AgileX | PiperX | Single-arm tabletop manipulator |
 | Standard Bots | Core | Industrial manipulator |
 | Universal Robots | UR Series | Industrial manipulator |
-| Enactic | OpenArm | Bimanual tabletop manipulator |
+| UFACTORY | xArm Series | 5-, 6-, or 7-axis industrial manipulator |
+| Enactic | OpenArm v1 and v2 | Bimanual tabletop manipulator |
 | Almond | Axol | Bimanual tabletop manipulator |
+
+<Note>
+  If your OpenArm ships with an Anvil Devbox, keep the Devbox controller stack in place and follow the [Anvil OpenArm integration](/ros2/examples/anvil-openarm-devbox).
+</Note>
 
 ### Mobile and humanoid robots
 
@@ -63,6 +68,12 @@ Both commands must return `active`.
 <Warning>
   ZED X cameras are supported only on Jetson Orin. A discrete NVIDIA GPU in an x86-64 computer is not sufficient for a GMSL ZED X setup.
 </Warning>
+
+## Optional hardware
+
+<Card title="Add an immersive neck" icon="rotate" href="/hardware/immersive-neck" horizontal>
+  Build a head-tracked camera mount with a D435i, ZED Mini, or ZED X Mini and either Feetech or Dynamixel motors.
+</Card>
 
 ## Compute
 

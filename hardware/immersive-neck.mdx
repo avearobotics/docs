@@ -1,0 +1,260 @@
+---
+title: "Add an immersive neck"
+sidebarTitle: "Immersive neck"
+description: "Build, calibrate, and connect a two-axis camera neck for head-tracked teleoperation."
+---
+
+An immersive neck is an optional two-axis camera mount that follows the operator's head. Add it after the robot, headset, and at least one fixed camera work reliably.
+
+Use Sentinel Runtime `0.13.0` or later.
+
+{/* TODO: Before publishing, confirm the 0.13.0 runtime image includes eng-578 commit a9256b59 or later, including the Dynamixel extended-position short-path fix. */}
+
+<Warning>
+  Calibrate and test the neck without a camera installed. Incorrect motor IDs, limits, or direction settings can drive the mount into its stops and damage the motors or camera.
+</Warning>
+
+## Choose a combination
+
+Choose one camera and one motor system. All six combinations use the same Sentinel neck capability.
+
+| Camera | Feetech motors | Dynamixel motors | Compute requirement |
+| --- | --- | --- | --- |
+| Intel RealSense D435i | Supported | Supported | Any [supported compute target](/getting-started/supported-hardware#compute) |
+| Stereolabs ZED Mini | Supported | Supported | `amd64-cu13` or `jp6.2` |
+| Stereolabs ZED X Mini | Supported | Supported | Jetson Orin with a compatible GMSL2 capture card; use `jp6.2` |
+
+The camera changes the printed mounting bar and camera configuration. The motor system changes the controller board, motor setup software, calibration script, and neck adapter settings.
+
+## What you need
+
+<Tabs>
+  <Tab title="Feetech">
+    - 2 × Feetech `STS3215-C018` servos
+    - Compatible Feetech serial-servo controller
+    - USB cable for the controller
+    - Regulated 12 V motor power supply
+    - Matching motor cables and printed neck parts
+    - [Feetech servo software](https://www.feetechrc.com/software.html)
+  </Tab>
+
+  <Tab title="Dynamixel">
+    - 2 × ROBOTIS `XC330-T288-T` servos
+    - ROBOTIS OpenRB-150 controller board
+    - USB-C cable for the OpenRB-150
+    - Regulated 12 V motor power supply
+    - DYNAMIXEL TTL cables and matching printed neck parts
+    - [DYNAMIXEL Wizard 2.0](https://emanual.robotis.com/docs/en/software/dynamixel/dynamixel_wizard2/)
+  </Tab>
+</Tabs>
+
+<Note>
+  Download the [immersive neck CAD files](https://drive.google.com/drive/folders/1LuZOyft3a99CJ9f7cuppR4ZS39v8eokr) and select the folder matching your camera and motor combination.
+</Note>
+
+## Build and configure the neck
+
+<Steps titleSize="h3">
+  <Step title="Print the matching parts">
+    Use the motor base and camera bar for your exact combination. Do not substitute a bar from another camera: weight, mounting holes, and cable routing differ.
+
+    Assemble the yaw motor at the bottom and the pitch motor at the top. Secure the base to a stable tripod or robot frame before applying power.
+  </Step>
+
+  <Step title="Configure the motor IDs">
+    Both motor systems use:
+
+    | Axis | Position | Motor ID |
+    | --- | --- | --- |
+    | Yaw | Bottom motor | `2` |
+    | Pitch | Top motor | `1` |
+
+    <Tabs>
+      <Tab title="Feetech">
+        Use the Feetech software to configure one motor at a time. Set the bottom yaw motor to ID `2` and the top pitch motor to ID `1`. Configure both for `1,000,000` baud before daisy-chaining them.
+      </Tab>
+
+      <Tab title="Dynamixel">
+        Install DYNAMIXEL Wizard 2.0 and confirm the OpenRB-150 has its USB-to-DYNAMIXEL firmware. Connect one unconfigured motor at a time so two factory-default ID `1` motors do not collide.
+
+        Set the pitch motor to ID `1`, the yaw motor to ID `2`, and both motors to `1,000,000` baud. Sentinel configures the operating mode it needs when the neck connects.
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Connect data and motor power">
+    Connect the controller board to the Sentinel computer over USB. Connect the servos to a regulated 12 V supply with the power disconnected, then verify polarity before switching it on.
+
+    ```bash
+    ls -l /dev/serial/by-id/
+    ls -l /dev/ttyACM*
+    ```
+
+    Prefer the stable `/dev/serial/by-id/...` path in the robot configuration. If your account cannot access the port, add it to the `dialout` group and sign out or reboot:
+
+    ```bash
+    sudo usermod -aG dialout "$USER"
+    ```
+
+    <Warning>
+      USB power alone is not sufficient for the motor bus. Do not connect or disconnect servo cables while motor power is on.
+    </Warning>
+  </Step>
+
+  <Step title="Calibrate both axes">
+    Move each axis gently by hand when the script asks for its two safe extremes and neutral position.
+
+    <Tabs>
+      <Tab title="Feetech">
+        ```bash
+        python3 -m pip install feetech-servo-sdk
+        curl -O https://docs.avearobotics.com/scripts/calibrate.py
+        python3 calibrate.py \
+          --port /dev/ttyACM0 \
+          --yaw-id 2 \
+          --pitch-id 1 \
+          --output ~/sentinel/neck_calibration.json
+        ```
+      </Tab>
+
+      <Tab title="Dynamixel">
+        ```bash
+        python3 -m pip install dynamixel-sdk
+        curl -O https://docs.avearobotics.com/scripts/calibrate_dynamixel.py
+        python3 calibrate_dynamixel.py \
+          --port /dev/ttyACM0 \
+          --yaw-id 2 \
+          --pitch-id 1 \
+          --output ~/sentinel/neck_calibration.json
+        ```
+      </Tab>
+    </Tabs>
+
+    Recalibrate after changing a horn position, motor, printed part, camera bar, or mechanical stop.
+  </Step>
+
+  <Step title="Test motion without the camera">
+    Keep the camera off the mount. Use the neck-only test configuration supplied with your setup to verify neutral, a small yaw movement, and a small pitch movement.
+
+    For the Feetech mount, you can also use the downloadable limit test:
+
+    ```bash
+    curl -O https://docs.avearobotics.com/scripts/test_limits.py
+    python3 test_limits.py \
+      --port /dev/ttyACM0 \
+      --yaw-id 2 \
+      --pitch-id 1 \
+      --calibration-file ~/sentinel/neck_calibration.json
+    ```
+
+    Keep one hand on the motor-power switch. Stop immediately if an axis moves opposite the requested direction, approaches a hard stop, or pulls a cable tight.
+  </Step>
+
+  <Step title="Install and verify the camera">
+    Turn off motor power, install the matching camera bar, and route the camera cable with enough slack for full yaw and pitch travel.
+
+    - Connect the D435i or ZED Mini over USB.
+    - Connect the ZED X Mini to its GMSL2 capture card on the Jetson.
+    - For ZED X Mini, verify `zed_x_daemon` and `nvargus-daemon` before starting Sentinel.
+
+    ```bash
+    systemctl is-active zed_x_daemon.service
+    systemctl is-active nvargus-daemon.service
+    ```
+
+    Both services are required only for the ZED X Mini path.
+  </Step>
+</Steps>
+
+## Configure Sentinel
+
+Select the motor backend in the neck adapter. The camera configuration is independent, so the same motor block works with any of the three cameras.
+
+<Tabs>
+  <Tab title="Feetech">
+    ```yaml
+    neck:
+      port: /dev/serial/by-id/<controller>
+      baudrate: 1000000
+      backend: feetech
+      motor_model: sts3215
+      yaw_id: 2
+      pitch_id: 1
+      calibration_file: /config/neck_calibration.json
+      disable_torque_on_disconnect: true
+    ```
+  </Tab>
+
+  <Tab title="Dynamixel">
+    ```yaml
+    neck:
+      port: /dev/serial/by-id/<openrb-150>
+      baudrate: 1000000
+      backend: dynamixel
+      motor_model: xc330-t288
+      yaw_id: 2
+      pitch_id: 1
+      calibration_file: /config/neck_calibration.json
+      disable_torque_on_disconnect: true
+    ```
+  </Tab>
+</Tabs>
+
+Start Sentinel with the calibration file as the launcher's third argument:
+
+<Tabs>
+  <Tab title="CPU only">
+    ```bash
+    ./run_sentinel.sh \
+      /absolute/path/to/robot.yaml \
+      0.13.0-amd64 \
+      /absolute/path/to/neck_calibration.json
+    ```
+
+    Use `0.13.0-arm64` on a non-Jetson ARM64 computer. This path applies to the RealSense D435i; ZED cameras require an NVIDIA container.
+  </Tab>
+
+  <Tab title="Desktop NVIDIA">
+    ```bash
+    ./run_sentinel.sh \
+      /absolute/path/to/robot.yaml \
+      0.13.0-amd64-cu13 \
+      /absolute/path/to/neck_calibration.json
+    ```
+  </Tab>
+
+  <Tab title="Jetson Orin">
+    ```bash
+    ./run_sentinel.sh \
+      /absolute/path/to/robot.yaml \
+      0.13.0-jp6.2 \
+      /absolute/path/to/neck_calibration.json
+    ```
+  </Tab>
+</Tabs>
+
+Contact the team in [Slack](https://avea-robotics.slack.com) for the current camera and neck configuration matching your robot and hardware combination.
+
+## Verify the finished setup
+
+<Steps>
+  <Step title="Start disarmed">
+    Confirm the neck serial port and camera open without errors before arming the neck.
+  </Step>
+  <Step title="Check camera output">
+    Confirm the neck view appears at the configured resolution and frame rate without dropped-frame bursts.
+  </Step>
+  <Step title="Check direction">
+    Make small head movements. Looking left must move the camera left; looking up must move it up. Correct reversed motion with `invert_yaw` or `invert_pitch` in the neck capability.
+  </Step>
+  <Step title="Check the full range">
+    Move slowly through the usable range while watching motor clearance, the camera cable, and the physical stops.
+  </Step>
+  <Step title="Check disarm">
+    Disarm the neck and confirm that the adapter disconnects and releases motor torque.
+  </Step>
+</Steps>
+
+<Check>
+  The neck is ready when the camera view is stable, small headset movements produce matching yaw and pitch motion, no cable tightens through the calibrated range, and disarming releases the motors.
+</Check>

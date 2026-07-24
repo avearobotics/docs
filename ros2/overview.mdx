@@ -1,105 +1,146 @@
 ---
-title: "ROS 2 control API"
-description: "The ROS 2 topics and messages Sentinel uses to control a robot and read its state."
+title: "Connect a robot with ROS 2"
+sidebarTitle: "Integration overview"
+description: "Connect an existing ROS 2 controller, robot state, and camera stack to Sentinel."
 ---
 
-Sentinel exposes a ROS 2 control boundary for robots that already have a ROS 2 driver or controller. Sentinel publishes commands. Your robot publishes measured state and camera frames.
+Keep your existing robot driver or controller in place. Sentinel connects to it through ROS 2:
 
-You do not need to move your hardware driver into the Sentinel container. Keep the driver, `ros2_control` stack, or vendor SDK where it already runs and connect its ROS 2 interfaces to the Sentinel adapter.
+- Your stack publishes measured robot state and camera frames.
+- Sentinel publishes live position targets and other configured commands.
+- Your stack remains responsible for hardware communication, command execution, and hardware safety.
+
+```mermaid
+flowchart LR
+    XR["Operator input"]
+    S["Sentinel"]
+    C["Your ROS 2 controller"]
+    R["Robot hardware"]
+    CAM["Your camera nodes"]
+
+    XR --> S
+    S -->|"position targets"| C
+    C -->|"measured JointState"| S
+    C <--> R
+    CAM -->|"image topics"| S
+```
 
 <Warning>
-  **Publish `sensor_msgs/JointState` before starting Sentinel.** Sustain at least 100 Hz while the robot is running, including while it is idle or disarmed. If the stream goes stale for 500 ms, Sentinel treats the robot state as unsafe and triggers an E-stop.
+  Sentinel does not replace the robot's hardware safety system. Your controller must enforce the joint, velocity, workspace, watchdog, fault, and emergency-stop behavior required by your robot.
 </Warning>
 
-## Systems and robots
+## Choose your path
 
-A Sentinel setup can control more than one physical robot. The top-level `systems` list describes the independently namespaced control systems that Sentinel starts and coordinates.
+Start from the path that matches the stack you already run.
 
-Each system has:
-
-- A unique namespace
-- One or more hardware or ROS 2 adapters
-- Capabilities such as an arm, gripper, neck, mobile base, or hand
-- Its own description, state, commands, and safety configuration
-
-For example, one setup can contain two YAM arms and a separate neck:
-
-```mermaid
-flowchart LR
-    SETUP["One Sentinel setup"]
-    LEFT["yam_left system<br/>arm + gripper"]
-    RIGHT["yam_right system<br/>arm + gripper"]
-    NECK["yam_neck system<br/>neck"]
-
-    SETUP --> LEFT
-    SETUP --> RIGHT
-    SETUP --> NECK
-```
-
-| System | Namespace | Capabilities |
-| --- | --- | --- |
-| YAM Left | `yam_left` | Left manipulator and gripper |
-| YAM Right | `yam_right` | Right manipulator and gripper |
-| YAM Neck | `yam_neck` | Neck |
-
-This is still one operator setup and one data-collection setup. Namespaces keep the control and state topics separate. Sentinel can arm, disarm, and coordinate actions across the configured systems.
-
-You can also put several capabilities in one system when they belong to the same logical robot. For example, a single system can contain an arm adapter and a neck adapter. Split hardware into separate systems when it needs an independent namespace and control lifecycle.
-
-Every system with a manipulator must receive its required measured joint-state stream before Sentinel starts. Each stream must meet the same 100 Hz and 500 ms staleness requirements.
-
-## Interface at a glance
-
-```mermaid
-flowchart LR
-    S["Sentinel ROS 2 adapter"]
-    C["Your controller or driver"]
-    JS["Measured JointState"]
-    CAM["Camera publisher"]
-
-    S -->|"JointTrajectory, Float64MultiArray, Float64, or Twist"| C
-    C -->|"sensor_msgs/JointState"| JS
-    JS --> S
-    CAM -->|"ROS image transport"| S
-```
-
-| Capability | Sentinel publishes | Your system publishes |
-| --- | --- | --- |
-| Arm | `trajectory_msgs/JointTrajectory` or `std_msgs/Float64MultiArray` | `sensor_msgs/JointState` |
-| Gripper | `trajectory_msgs/JointTrajectory`, `std_msgs/Float64`, or `std_msgs/Float64MultiArray` | `sensor_msgs/JointState` when available |
-| Mobile base | `geometry_msgs/Twist` | Integration-specific state |
-| Camera | — | Raw, compressed, or compressed-depth ROS image transport |
-
-The adapter can remap joint names and apply per-joint scale, sign, and offset transforms. Configure QoS for each robot topic so it matches the existing publisher or subscriber.
-
-## DDS domains
-
-The Sentinel runtime runs in one configured `ROS_DOMAIN_ID`. The current generic robot adapter joins that domain. Robot command and state topics must therefore be discoverable in the Sentinel domain.
-
-Camera behavior depends on the adapter:
-
-- The `image_transport` adapter joins the Sentinel domain.
-  - The dedicated compressed-camera domain bridge can subscribe in a separate source domain.
-
-This means a camera can currently come from another domain, but the released generic robot adapter cannot yet pull arm topics from an arbitrary second domain. See [DDS and container networking](/ros2/networking) for working topologies.
-
-## Choose an integration path
-
-<Columns cols={2}>
-  <Card title="Implement the control topics" icon="sliders" href="/ros2/control-interface">
-    Configure commands, measured state, joint mapping, and QoS.
+<Columns cols={3}>
+  <Card title="Existing ros2_control stack" icon="diagram-project" href="/ros2/examples/ros2-control">
+    Connect Sentinel to a forward position controller and joint-state broadcaster.
   </Card>
-  <Card title="Use ros2_control" icon="diagram-project" href="/ros2/examples/ros2-control">
-    Connect a controller manager and standard ROS 2 controllers.
+  <Card title="Anvil OpenArm Devbox" icon="robot" href="/ros2/examples/anvil-openarm-devbox">
+    Keep the Devbox in control of the hardware and bridge its existing topics.
   </Card>
-  <Card title="Wrap a vendor SDK" icon="code" href="/ros2/examples/i2rt-adapter">
-    See a complete adapter pattern built around an I2RT-controlled arm.
-  </Card>
-  <Card title="Connect cameras" icon="video" href="/ros2/camera-interface">
-    Choose raw or compressed image transport and validate latency.
+  <Card title="Vendor SDK or custom driver" icon="code" href="/ros2/examples/vendor-sdk-adapter">
+    Wrap the hardware loop in a small ROS 2 node that implements the Sentinel boundary.
   </Card>
 </Columns>
 
-<Warning>
-  Sentinel commands do not replace hardware safety. Your controller must enforce joint, velocity, workspace, watchdog, and emergency-stop behavior appropriate for the robot.
-</Warning>
+If your controller already publishes measured joint state and accepts one of the supported command types, you do not need a new driver. Configure the topics directly in Sentinel.
+
+## Systems and robots
+
+The top-level `systems` list models the independently controlled robots in one Sentinel setup. Give each physical robot that needs its own namespace and control lifecycle a separate system. Keep related capabilities together when they belong to the same logical robot.
+
+| Physical setup | Suggested Sentinel model |
+| --- | --- |
+| One arm with a gripper | One system with manipulator and gripper capabilities |
+| Bimanual robot | Two systems, such as `arm_left` and `arm_right` |
+| Two arms and an independent neck | Three systems with separate namespaces |
+
+Each system declares its adapters, capabilities, safety settings, state machine, and lifecycle orchestration. Every manipulator system needs its own complete measured-state stream before Sentinel starts.
+
+## Before you integrate
+
+Verify your stack without Sentinel first:
+
+- The robot can enter its normal ready state.
+- A physical emergency stop is installed and tested.
+- The controller stops or holds safely when commands stop.
+- A URDF is available from a file, parameter, or transient-local topic.
+- `sensor_msgs/msg/JointState` contains every controlled joint.
+- You know the command topic, message type, joint names, and joint order.
+- Each camera you want in Sentinel publishes a stable ROS 2 image topic.
+
+Do not continue until a small controller-native command works in a cleared workspace.
+
+## Integration flow
+
+<Steps titleSize="h3">
+  <Step title="Make the ROS graph visible to Sentinel">
+    Put Sentinel and your stack on a discoverable DDS network. Use the same `ROS_DOMAIN_ID` for robot control topics, then verify discovery from the environment that will run Sentinel.
+
+    [Configure and test DDS networking →](/ros2/networking)
+  </Step>
+
+  <Step title="Publish measured robot state">
+    Publish every controlled joint in `sensor_msgs/msg/JointState` continuously. Names and values must remain aligned, positions must use radians, and the stream must continue while the robot is idle.
+
+    Sentinel uses this stream for initialization, kinematics, safety checks, and stale-state fault detection.
+  </Step>
+
+  <Step title="Connect the command interface">
+    Choose the output your controller already accepts:
+
+    - `std_msgs/msg/Float64MultiArray` for a continuous forward position controller.
+    - `trajectory_msgs/msg/JointTrajectory` for a named trajectory command endpoint.
+
+    Declare the fixed slot order for every nameless array. Use joint mapping when external names, signs, or offsets differ from the Sentinel model.
+
+    [Configure robot state and commands →](/ros2/control-interface)
+  </Step>
+
+  <Step title="Connect one camera">
+    Start with one operator view. Prefer compressed image transport across computers or containers. Confirm the source rate, timestamps, orientation, and end-to-end latency before adding more cameras.
+
+    [Configure ROS 2 cameras →](/ros2/camera-interface)
+  </Step>
+
+  <Step title="Create the Sentinel configuration">
+    Start with [`ros2_single_arm.yaml`](/configs/ros2_single_arm.yaml) or [`ros2_dual_arm.yaml`](/configs/ros2_dual_arm.yaml). Fill in the URDF source, state topic, command topic or array outputs, joint names, limits, and camera topics.
+
+    [Understand the full robot configuration →](/getting-started/configure-robot)
+  </Step>
+
+  <Step title="Validate before arming">
+    From the Sentinel environment, verify:
+
+    ```bash
+    ros2 topic hz /robot/joint_states
+    ros2 topic echo /robot/joint_states --once
+    ros2 topic info --verbose /robot/joint_states
+    ros2 topic info --verbose /robot/command
+    ```
+
+    Test with one arm and one camera first. Keep Sentinel disarmed until state, command discovery, QoS, joint ordering, and limits are verified.
+  </Step>
+
+  <Step title="Start Sentinel">
+    Start your hardware stack before Sentinel. Then launch Sentinel with the completed `robot.yaml`, confirm the robot and camera appear, and follow the [first-session flow](/getting-started/quickstart).
+  </Step>
+</Steps>
+
+## Interface at a glance
+
+| Direction | Interface | Requirement |
+| --- | --- | --- |
+| Your stack → Sentinel | `sensor_msgs/msg/JointState` | Required for every controlled manipulator |
+| Sentinel → your stack | `std_msgs/msg/Float64MultiArray` | Forward position targets in a fixed configured order |
+| Sentinel → your stack | `trajectory_msgs/msg/JointTrajectory` | Named position targets |
+| Your stack → Sentinel | ROS image transport | Optional raw, compressed, or compressed-depth camera feed |
+| Sentinel → your stack | `geometry_msgs/msg/Twist` | Optional mobile-base command |
+
+The generic bridge also supports configured gripper, neck, hand, elevator, and PTZ interfaces. Establish the measured-state and arm-command path before adding optional capabilities.
+
+<Check>
+  The integration boundary is ready when Sentinel can observe every controlled joint, your controller receives a small correctly ordered target, and command loss leaves the robot in its validated safe behavior.
+</Check>

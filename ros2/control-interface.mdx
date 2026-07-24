@@ -1,38 +1,60 @@
 ---
-title: "Robot control topics"
-description: "Command, state, robot description, mapping, and QoS requirements for a ROS 2 robot."
+title: "Robot control interface"
+sidebarTitle: "Robot control"
+description: "Map measured joint state, position commands, robot description, joint names, and QoS."
 ---
 
-The generic ROS 2 adapter converts Sentinel control output into standard ROS 2 messages. Configure the topics and mappings around the controller you already use.
+The generic ROS 2 bridge connects Sentinel's control pipeline to the controller you already run. A manipulator integration needs three things:
+
+| Interface | Direction | Purpose |
+| --- | --- | --- |
+| Robot description | Your stack → Sentinel | Joint names, kinematics, and limits |
+| `sensor_msgs/msg/JointState` | Your stack → Sentinel | Continuous measured robot state |
+| Position command topic | Sentinel → your stack | Live targets for the robot controller |
 
 <Warning>
-  **Start the joint-state publisher before the Sentinel stack.** Sustain at least 100 Hz and include every controlled joint. If no fresh state arrives for 500 ms, Sentinel triggers an E-stop.
+  Start and validate measured state before Sentinel. Every controlled joint must be present, and the stream must continue while the robot is idle or disarmed.
 </Warning>
 
-## Required measured state
+## Publish measured state
 
-Publish `sensor_msgs/JointState` continuously at 100 Hz or faster. Higher rates are acceptable. Consistency matters more than choosing a specific rate above that minimum. State must continue while the robot is idle or disarmed.
-
-Populate:
-
-- `header.stamp` with the measurement time
-- `name` with stable joint names
-- `position` in radians
-- `velocity` in radians per second when available
-- `effort` in newton-metres when available
-
-Sentinel matches state by joint name. Message order may change between samples, but names and values must remain aligned within each message.
+Publish `sensor_msgs/msg/JointState` continuously at 100 Hz or faster:
 
 ```bash
 ros2 topic hz /robot/joint_states
 ros2 topic echo /robot/joint_states --once
 ```
 
-The current safety timeout is 500 ms. A gap longer than that faults the adapter and escalates to an E-stop. Do not increase or disable the timeout to work around an unreliable publisher or DDS connection.
+Populate:
 
-## Robot description
+- `header.stamp` with the measurement time.
+- `name` with stable joint names.
+- `position` in radians.
+- `velocity` in radians per second when available.
+- `effort` in newton-metres when available.
 
-Sentinel uses the URDF for joint names, kinematics, and limits. Provide it from one of these sources:
+Sentinel matches samples by joint name. The order may change between messages, but each message's names and values must remain aligned.
+
+### Configure stale-state detection
+
+The bridge faults when measured state stops arriving for longer than `stale_timeout_s`. The default is 0.5 seconds:
+
+```yaml
+state:
+  topic: /robot/joint_states
+  qos: sensor
+  stale_timeout_s: 0.5
+```
+
+Set the timeout from the expected publisher rate and worst validated network gap. Some high-rate remote systems need a larger value; for example, the Anvil OpenArm integration uses 2.5 seconds.
+
+<Warning>
+  Setting `stale_timeout_s: 0` disables stale-state fault detection. Do not disable it to hide an unreliable publisher or DDS connection.
+</Warning>
+
+## Provide the robot description
+
+Sentinel uses the URDF for joint names, kinematics, and limits. Choose one source:
 
 | Source | Use when |
 | --- | --- |
@@ -40,32 +62,66 @@ Sentinel uses the URDF for joint names, kinematics, and limits. Provide it from 
 | `robot_description` parameter | An existing `robot_state_publisher` owns the description |
 | Transient-local `robot_description` topic | The description is already distributed over ROS 2 |
 
-Make the description available before the control pipeline starts. Give each independently controlled system its own namespace and description source.
+Make the description available before the control pipeline starts.
 
-## Arm commands
+```yaml
+description:
+  source: parameter
+  node: /robot_state_publisher
+  parameter: robot_description
+  timeout_s: 10.0
+```
 
-Choose the output your controller accepts.
+For multiple independently controlled systems, use a distinct description source for each one. Do not point two arms at the same unnamespaced description topic unless it contains the complete model expected by both systems.
 
-| Output | Message | Joint identity |
-| --- | --- | --- |
-| Named trajectory | `trajectory_msgs/JointTrajectory` | `joint_names` in the message |
-| Forward position | `std_msgs/Float64MultiArray` | Fixed configured array order |
+## Choose a command type
 
-<Tip>
-  For `ros2_control`, use `forward_command_controller/ForwardCommandController` with the position interface. Do not place a `joint_trajectory_controller` between Sentinel's continuous targets and the hardware.
-</Tip>
+Use the message type your controller already accepts.
 
-All joint positions use radians. Joint velocities use radians per second.
+<Tabs>
+  <Tab title="Forward position array">
+    Use `std_msgs/msg/Float64MultiArray` with a forward position controller. This is the recommended `ros2_control` path for Sentinel's continuous target stream.
 
-For `JointTrajectory`, process the current target point according to the controller contract. For `Float64MultiArray`, declare the exact slot order in the integration configuration.
+    The message contains no joint names. Declare the exact fixed slot order:
+
+    ```yaml
+    command:
+      outputs:
+        - topic: /arm_controller/commands
+          qos: reliable
+          joint_names:
+            - shoulder_pan_joint
+            - shoulder_lift_joint
+            - elbow_joint
+            - wrist_1_joint
+            - wrist_2_joint
+            - wrist_3_joint
+    ```
+
+    A bimanual system can declare one output per arm. A joint may appear in only one output.
+  </Tab>
+
+  <Tab title="Named trajectory">
+    Use `trajectory_msgs/msg/JointTrajectory` when your controller accepts named position targets:
+
+    ```yaml
+    command:
+      topic: /robot/joint_trajectory
+      qos: reliable
+      single_point: false
+    ```
+
+    The controller can identify joints from `joint_names`. Treat the incoming data as a live command stream; do not build up a queue of stale motion.
+  </Tab>
+</Tabs>
 
 <Warning>
-  Never infer a forward-position array order from the current `JointState` message. A `JointState` publisher may reorder names. The command array order is fixed by the controller configuration.
+  Never infer a `Float64MultiArray` slot order from the current `JointState` message. State may be reordered. The command array order is fixed by the controller configuration.
 </Warning>
 
-## Joint mapping
+## Map joint names and coordinates
 
-The adapter can translate between Sentinel joint names and external controller names. It can also apply an affine transform:
+Use remapping when the external controller and Sentinel URDF use different names. Use an affine transform when a joint has a different sign or zero:
 
 ```yaml
 command:
@@ -90,11 +146,17 @@ state:
   stale_timeout_s: 0.5
 ```
 
-`external = scale × sentinel + offset` for commanded position. State uses the inverse mapping. Keep the public contract in SI units; do not use transforms to introduce degrees.
+For commands:
 
-## QoS
+```text
+external = scale × sentinel + offset
+```
 
-Set QoS independently for command and state topics.
+State applies the inverse transform. Keep the public interface in SI units; do not use transforms to introduce degrees.
+
+## Match QoS
+
+Set QoS independently for command and state:
 
 | Preset | Typical use |
 | --- | --- |
@@ -102,46 +164,52 @@ Set QoS independently for command and state topics.
 | `sensor` or `best_effort` | High-rate state publishers using sensor-data QoS |
 | `default` | Publishers and subscribers using ROS 2 defaults |
 
-QoS must be compatible at both ends. If a topic appears in `ros2 topic list` but data never arrives, compare reliability and durability before changing the adapter code.
+If a topic appears in `ros2 topic list` but samples do not arrive, inspect both endpoints:
 
-## Other command interfaces
+```bash
+ros2 topic info --verbose /robot/joint_states
+```
 
-### Gripper
+## Add other capabilities
 
-A gripper can use `JointTrajectory`, `Float64`, or `Float64MultiArray`. Map Sentinel's normalized opening command to the device range. Publish measured gripper state when the hardware provides it.
+The same bridge can expose more than an arm:
 
-### Mobile base
+| Capability | Supported command |
+| --- | --- |
+| Gripper | `JointTrajectory`, `Float64`, `Float64MultiArray`, or a slot in an arm array |
+| Mobile base | `geometry_msgs/msg/Twist` |
+| Neck | `JointTrajectory` or `PoseStamped` |
+| Dexterous hand | `JointTrajectory` or `Float64MultiArray` |
+| Elevator | `Float64`, `Twist`, or `JointTrajectory` |
+| PTZ | `Twist` or `TwistStamped` |
 
-Subscribe to `geometry_msgs/Twist` for mobile-base commands. Linear velocity uses metres per second. Angular velocity uses radians per second. Stop safely when the command stream stops.
-
-### Neck, hand, elevator, and PTZ
-
-The generic adapter also supports configured neck, dexterous-hand, elevator, and PTZ outputs. Start with the arm and measured-state path. Add these capabilities only after the base integration is stable.
+Start with measured arm state and arm commands. Add optional capabilities after the base integration is stable.
 
 ## Validate before Sentinel
 
 <Steps>
-  <Step title="Inspect the description">
-    Confirm that the expected joint names and limits appear in the URDF.
+  <Step title="Inspect the URDF">
+    Confirm that every controlled joint, link, and limit matches the physical robot.
   </Step>
   <Step title="Verify continuous measured state">
-    Confirm that every controlled joint is present and that state continues while the controller is idle.
+    Confirm the rate, names, units, and values. Leave the controller idle and verify that state continues.
   </Step>
-  <Step title="Send a small controller-native command">
+  <Step title="Send one small controller-native command">
     Test the command topic without Sentinel in a cleared workspace.
   </Step>
   <Step title="Stop the command publisher">
     Confirm that the controller holds or stops according to the robot's validated watchdog behavior.
   </Step>
-  <Step title="Match QoS and domain settings">
-    Run the checks from the same container and domain that will run Sentinel.
+  <Step title="Verify from the Sentinel environment">
+    Repeat discovery, sample, QoS, and subscriber checks from the container and domain that will run Sentinel.
   </Step>
 </Steps>
 
-## Planned additions
-
-ROS 2 lifecycle-node and controller-manager service integration are planned. They are not required for the current topic-based adapter. Full TF and OVR skeleton publication are also in development.
-
-<Card title="Configure DDS networking" icon="network-wired" href="/ros2/networking" horizontal>
-  Make these topics discoverable across the Sentinel container and robot computer.
-</Card>
+<Columns cols={2}>
+  <Card title="Use ros2_control" icon="diagram-project" href="/ros2/examples/ros2-control">
+    Map Sentinel to a forward position controller.
+  </Card>
+  <Card title="Configure cameras" icon="video" href="/ros2/camera-interface">
+    Add operator views after robot control is stable.
+  </Card>
+</Columns>

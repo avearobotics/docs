@@ -1,42 +1,103 @@
 ---
 title: "DDS and container networking"
-description: "Make ROS 2 topics discoverable between Sentinel, containers, and robot computers."
+sidebarTitle: "DDS networking"
+description: "Make robot state and command topics visible from the Sentinel runtime."
 ---
 
-The generic robot adapter and your controller must share a ROS 2 domain and a discoverable DDS network. Verify networking before debugging topics or control code.
+Sentinel and your robot controller must discover each other before you configure the adapter. Run every check on this page from the same container, network mode, ROS domain, and DDS configuration that will run Sentinel.
 
-## Current topology
+<Check>
+  Networking is ready when the Sentinel environment receives live joint-state samples and your controller reports the expected command subscriber.
+</Check>
 
-The Sentinel container runs with a configured `ROS_DOMAIN_ID` and Cyclone DDS by default. The released generic robot adapter uses that domain. Its command publishers and state subscribers do not create a second DDS participant in an arbitrary source domain.
+## Choose a topology
 
-Use one of these topologies:
-
-| Topology | Setup |
+| Your controller runs… | Recommended setup |
 | --- | --- |
-| Driver on the Sentinel computer | Run both sides with the same domain and host networking |
-| Driver in another container on the same computer | Use host networking for both containers and the same domain |
-| Driver on another computer | Use the same domain, enable non-local discovery, and select the network interface or discovery peers |
-| Compressed camera in another domain | Use the dedicated compressed-camera domain bridge |
+| On the Sentinel computer | Use host networking and the same `ROS_DOMAIN_ID` |
+| In another container on that computer | Use host networking for both containers and the same domain |
+| On another computer | Use the same domain, non-local discovery, and an explicit network interface or peer |
+| In another domain | Robot control topics are not supported through an arbitrary second domain; move them into the Sentinel domain |
 
-## Baseline environment
+Compressed cameras can use a dedicated cross-domain bridge. That exception does not make robot state or command topics visible to the generic robot bridge.
 
-Set these values on both sides before starting ROS 2 nodes:
+## Set the baseline environment
+
+Set the same domain on both sides:
 
 ```bash
 export ROS_DOMAIN_ID=67
-export ROS_LOCALHOST_ONLY=0
 ```
 
-Use the domain configured for your robot if it is not `67`. Environment changes do not update processes that are already running. Restart the ROS 2 daemon after changing the domain or DDS configuration.
+Replace `67` with the domain assigned to your robot. Restart processes after changing the environment; an existing ROS 2 process does not change domains.
 
 ```bash
 ros2 daemon stop
-ros2 topic list
 ```
 
-## Cyclone DDS example
+Sentinel uses Cyclone DDS by default. For the shortest bring-up path, use Cyclone DDS on both computers:
 
-Use an explicit interface when the computer has Ethernet, Wi-Fi, VPN, and container interfaces. Add a peer when multicast discovery is unavailable or unreliable.
+```bash
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+```
+
+## Verify the connection
+
+<Steps>
+  <Step title="Confirm the environment">
+    Check the domain, localhost setting, RMW implementation, and DDS configuration URI:
+
+    ```bash
+    printenv ROS_DOMAIN_ID ROS_LOCALHOST_ONLY RMW_IMPLEMENTATION CYCLONEDDS_URI
+    ```
+  </Step>
+
+  <Step title="Confirm discovery">
+    Start the robot controller, then run:
+
+    ```bash
+    ros2 node list
+    ros2 topic list
+    ```
+
+    Cross-computer discovery can take several seconds. If the graph looks stale, stop the ROS 2 daemon and retry.
+  </Step>
+
+  <Step title="Confirm live measured state">
+    Seeing a topic name is not enough. Verify that samples arrive:
+
+    ```bash
+    ros2 topic hz /robot/joint_states
+    ros2 topic echo /robot/joint_states --once
+    ```
+  </Step>
+
+  <Step title="Confirm compatible QoS">
+    Inspect the measured-state publisher:
+
+    ```bash
+    ros2 topic info --verbose /robot/joint_states
+    ```
+
+    Match Sentinel's state subscription to the publisher. Use the `sensor` preset for a best-effort sensor-data publisher and `reliable` for a reliable publisher.
+  </Step>
+
+  <Step title="Confirm command discovery">
+    Start your controller subscription, then inspect its command topic:
+
+    ```bash
+    ros2 topic info --verbose /robot/command
+    ```
+
+    Confirm the expected message type and at least one subscriber before starting Sentinel.
+  </Step>
+</Steps>
+
+## Pin Cyclone DDS to the robot network
+
+Use an explicit interface when a computer has Ethernet, Wi-Fi, VPN, Tailscale, Docker bridges, or other competing interfaces.
+
+<Accordion title="Cyclone DDS interface and peer configuration">
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" ?>
@@ -59,39 +120,29 @@ Use an explicit interface when the computer has Ethernet, Wi-Fi, VPN, and contai
 </CycloneDDS>
 ```
 
+Save the file, replace the interface and peer address, and export its location:
+
 ```bash
-export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 export CYCLONEDDS_URI=file:///absolute/path/to/cyclonedds.xml
+ros2 daemon stop
 ```
 
-Replace `eth0` and the peer address with the actual robot-network values.
+</Accordion>
 
-## Fast DDS
+## Diagnose common failures
 
-Fast DDS can interoperate only when discovery and transport are configured for the network in use. Do not restrict discovery to localhost when Sentinel runs in another container or on another computer. For initial integration, running Cyclone DDS on both sides removes a major source of configuration differences.
-
-## Verify from the Sentinel environment
-
-Run every check from the same container, domain, and DDS configuration that will run Sentinel.
-
-<Steps>
-  <Step title="Confirm the environment">
-    Check `ROS_DOMAIN_ID`, `ROS_LOCALHOST_ONLY`, `RMW_IMPLEMENTATION`, and any DDS configuration URI.
-  </Step>
-  <Step title="Confirm discovery">
-    Run `ros2 node list` and `ros2 topic list`. Allow several discovery intervals on a cross-computer link.
-  </Step>
-  <Step title="Confirm measured state">
-    Run `ros2 topic hz /robot/joint_states` and `ros2 topic echo /robot/joint_states --once`.
-  </Step>
-  <Step title="Confirm QoS">
-    Run `ros2 topic info --verbose /robot/joint_states` and compare the publisher with the adapter configuration.
-  </Step>
-  <Step title="Confirm command discovery">
-    Start the controller subscription, then inspect the command topic with `ros2 topic info --verbose`.
-  </Step>
-</Steps>
+| Symptom | Check first |
+| --- | --- |
+| No remote topics | Domain mismatch, `ROS_LOCALHOST_ONLY=1`, RMW mismatch, or wrong network interface |
+| Topic appears but no samples arrive | QoS incompatibility or a stale ROS 2 daemon |
+| Discovery works intermittently | Multiple active interfaces, multicast restrictions, Wi-Fi roaming, or VPN routing |
+| Cameras work but robot topics do not | The camera may use the cross-domain bridge; robot control still requires the Sentinel domain |
+| Works on the host but not in Sentinel | Container network mode or environment differs from the shell used for testing |
 
 <Warning>
-  Seeing a topic name is not enough. Confirm that samples arrive and that QoS is compatible before arming the robot.
+  Do not arm the robot based only on `ros2 topic list`. Confirm live measured state, compatible QoS, and the command subscriber from the Sentinel environment.
 </Warning>
+
+<Card title="Configure the robot interface" icon="sliders" href="/ros2/control-interface" horizontal>
+  Map measured state, command outputs, joint names, and watchdog behavior.
+</Card>

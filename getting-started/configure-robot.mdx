@@ -16,11 +16,13 @@ Download the template that matches your hardware and fill in the placeholder fie
 | [`ros2_single_arm.yaml`](/configs/ros2_single_arm.yaml) | Any ROS 2 robot — single arm, gripper, and one bridged camera |
 | [`ros2_dual_arm.yaml`](/configs/ros2_dual_arm.yaml) | Any ROS 2 robot — dual arm |
 | [`yam_dual_3realsense.yaml`](/configs/yam_dual_3realsense.yaml) | Bimanual i2rt YAM with three RealSense cameras |
-| [`yam_dual_zed_immersive.yaml`](/configs/yam_dual_zed_immersive.yaml) | Bimanual i2rt YAM with a ZED immersive camera |
+| [`yam_dual_zed_immersive.yaml`](/configs/yam_dual_zed_immersive.yaml) | Bimanual i2rt YAM with a Feetech neck and ZED Mini reference setup |
 | [`trossen_dual_3realsense.yaml`](/configs/trossen_dual_3realsense.yaml) | Dual Trossen arms with three RealSense cameras |
-| [`trossen_dual_zed_immersive.yaml`](/configs/trossen_dual_zed_immersive.yaml) | Dual Trossen arms with a ZED immersive camera |
+| [`trossen_dual_zed_immersive.yaml`](/configs/trossen_dual_zed_immersive.yaml) | Dual Trossen arms with a Feetech neck and ZED Mini reference setup |
 
 For other [supported robots](/getting-started/supported-hardware), contact the team in [Slack](https://avea-robotics.slack.com) for a starting configuration.
+
+For the D435i, ZED Mini, ZED X Mini, Feetech, and Dynamixel neck combinations, follow [Add an immersive neck](/hardware/immersive-neck).
 
 Every template needs a license key. Generate one per robot in the [dashboard](https://dashboard.avearobotics.com/dashboard/robots) and set it in `system.license_key`.
 
@@ -55,7 +57,7 @@ Within a system:
 
 ### Controller mapping
 
-The `buttons` section binds controller inputs to robot and episode actions. The template default:
+The `buttons` section binds controller inputs to robot and episode actions. The public template default:
 
 | Input | Action |
 | --- | --- |
@@ -65,6 +67,10 @@ The `buttons` section binds controller inputs to robot and episode actions. The 
 | B button | Disarm all systems |
 | X button | Start or stop the recording episode |
 | Y button | Stop the episode and mark it failed |
+
+<Note>
+  Customer-specific configurations can use different bindings. Check the `buttons` section of the exact `robot.yaml` you launch before operating the robot.
+</Note>
 
 ### Dataset recording
 
