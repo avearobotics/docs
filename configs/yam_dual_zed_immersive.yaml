@@ -735,6 +735,7 @@ systems:
         neck:
           port: "<NECK_SERIAL_PORT>"  # e.g. "/dev/ttyACM0"
           baudrate: 1000000
+          backend: "feetech"
           motor_model: "sts3215"
           yaw_id: 2
           pitch_id: 1

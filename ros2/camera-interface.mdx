@@ -1,78 +1,109 @@
 ---
-title: "Camera topics"
-description: "Publish raw or compressed ROS 2 camera feeds to Sentinel."
+title: "ROS 2 camera interface"
+sidebarTitle: "Cameras"
+description: "Connect raw, compressed, or compressed-depth ROS 2 image topics to Sentinel."
 ---
 
-Sentinel can subscribe to standard ROS 2 image transport. Publish each operator view on a stable base topic and choose the transport in the robot configuration.
+Use this page when a camera already publishes through ROS 2. If Sentinel [supports opening the camera directly](/getting-started/supported-hardware#cameras), you can configure the hardware adapter instead.
 
-## Supported inputs
+Connect one operator view first. Verify its rate, timestamps, orientation, and latency before adding more cameras.
 
-| Transport | ROS message on the wire | Use when |
+## Choose a transport
+
+| Transport | Message on the wire | Use when |
 | --- | --- | --- |
-| `raw` | `sensor_msgs/Image` | Camera and Sentinel run on the same computer or a high-bandwidth local link |
-| `compressed` | `sensor_msgs/CompressedImage` | Color video crosses a container or network boundary |
+| `compressed` | `sensor_msgs/msg/CompressedImage` | Color video crosses a computer, container, or constrained link |
+| `raw` | `sensor_msgs/msg/Image` | Camera and Sentinel share a computer or high-bandwidth local link |
 | `compressedDepth` | Compressed depth transport | You need a supported depth stream |
 
-The image transport adapter supports common color, mono, Bayer, YUV, and depth encodings. It converts the source into the configured Sentinel output format.
-
 <Tip>
-  Prefer `compressed` for color cameras. It is the most practical option across computers and containers because it avoids sending full raw frames through DDS.
+  Prefer `compressed` for color video across computers or containers. Raw 1080p video can consume substantial DDS bandwidth before Sentinel encodes it for the operator.
 </Tip>
 
-<Note>
-  ZSTD image transport is not present in the current released runtime implementation. Do not configure it until the corresponding transport plugin is included and verified.
-</Note>
+The adapter accepts common color, mono, Bayer, YUV, and depth encodings and converts them into the configured Sentinel output format.
 
-## Recommended settings
+## Configure a camera
 
-- Use a steady 60 fps feed when the camera and compute can sustain it.
-- Reduce resolution before accepting unstable latency or frame bursts.
-- Use capture timestamps in `header.stamp`.
-- Give each physical view a stable name such as `head`, `left_wrist`, or `overhead`.
-- Configure reliability and queue depth to match the publisher.
-
-For compressed transport, configure the base image topic rather than the suffixed transport topic. For example, use `/head/image_raw` with `transport: compressed`; image transport resolves `/head/image_raw/compressed`.
+For image transport, configure the base topic—not the suffixed transport topic. This example subscribes to `/head/image_raw/compressed`:
 
 ```yaml
-adapter:
-  plugin: sentinel_vision_adapter_image_transport::ImageTransportCamera
-  config:
-    image_topic: /head/image_raw
-    transport: compressed
-    camera_id: head
-    stream_type: color
-    output_format: bgr8
-    reliability: best_effort
-    queue_size: 5
+cameras:
+  - name: head
+    adapter:
+      plugin: sentinel_vision_adapter_image_transport::ImageTransportCamera
+      config:
+        image_topic: /head/image_raw
+        transport: compressed
+        camera_id: head
+        stream_type: color
+        output_format: bgr8
+        reliability: best_effort
+        queue_size: 5
 ```
 
-## Domains
+Match `reliability` to the publisher. Use a stable camera name such as `head`, `left_wrist`, `right_wrist`, or `overhead`; that name identifies the view in the operator interface and recorded output.
 
-The image transport adapter joins Sentinel's ROS domain. Use it when the camera topic is visible in that domain.
+<Note>
+  ZSTD image transport is not included in the current released runtime. Use `raw`, `compressed`, or `compressedDepth`.
+</Note>
 
-The dedicated compressed-camera bridge can subscribe to `sensor_msgs/CompressedImage` in a different source domain. That adapter currently uses best-effort, volatile QoS and JPEG decoding.
-
-<Warning>
-  Cross-domain support is adapter-specific. Setting a source domain on a camera does not make robot control topics from that domain visible to the generic robot adapter.
-</Warning>
-
-## Validate the feed
+## Validate one feed
 
 <Steps>
-  <Step title="Check the source rate">
-    Run `ros2 topic hz <camera-topic>` from the same domain and container network used by Sentinel.
+  <Step title="Verify the source topic">
+    Run the check from the same domain and container network as Sentinel:
+
+    ```bash
+    ros2 topic hz /head/image_raw/compressed
+    ros2 topic info --verbose /head/image_raw/compressed
+    ```
   </Step>
-  <Step title="Check timestamps">
-    Confirm that timestamps increase monotonically and represent capture time when the driver supports it.
+
+  <Step title="Verify timestamps">
+    Confirm that `header.stamp` increases monotonically and represents capture time when the driver supports it.
   </Step>
+
+  <Step title="Verify the Sentinel view">
+    Start Sentinel with only this camera configured. Confirm the image orientation, role, resolution, and frame rate.
+  </Step>
+
   <Step title="Check end-to-end latency">
-    Move a visible object through the frame and compare physical motion with the operator view.
+    Move a visible object through the frame and compare physical motion with the operator view. Reduce resolution or frame rate before accepting unstable latency or frame bursts.
   </Step>
-  <Step title="Check every configured view">
-    Confirm that each camera has the correct orientation, name, and role.
+
+  <Step title="Add the remaining views">
+    Add one camera at a time. Verify each view before increasing resolution, frame rate, or encoder bitrate.
   </Step>
 </Steps>
 
-<Card title="Configure DDS networking" icon="network-wired" href="/ros2/networking" horizontal>
-  Verify discovery and transport across computers and containers.
+## Use a different source domain
+
+The image-transport adapter joins Sentinel's `ROS_DOMAIN_ID`. Use the dedicated compressed-camera bridge when the source must remain in another domain.
+
+The cross-domain bridge currently consumes `sensor_msgs/msg/CompressedImage` with best-effort, volatile QoS. Configure the exact suffixed source topic:
+
+```yaml
+adapter:
+  plugin: sentinel_vision_adapter_ros2_bridge::ROS2BridgeCamera
+  config:
+    source_domain_id: 42
+    source_topic: /head/image_raw/compressed
+    camera_id: head
+    output_format: bgr8
+```
+
+<Warning>
+  Cross-domain support is camera-specific. Configuring a camera source domain does not make robot state or command topics from that domain visible to the generic robot bridge.
+</Warning>
+
+## Recommended starting point
+
+- Start at 30 fps while validating a new network and camera path.
+- Prefer capture timestamps in `header.stamp`.
+- Match the configured encoder resolution and frame rate to the source.
+- Use a wired robot network when streaming multiple high-resolution views.
+- Add depth only after the color path is stable.
+
+<Card title="Return to the integration checklist" icon="list-check" href="/ros2/overview#integration-flow" horizontal>
+  Finish the robot configuration and pre-arm validation.
 </Card>

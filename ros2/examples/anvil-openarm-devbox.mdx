@@ -1,0 +1,145 @@
+---
+title: "Anvil OpenArm Devbox"
+description: "Connect Sentinel to the controller stack that ships with an Anvil OpenArm Devbox."
+---
+
+Use this path when your OpenArm arrived with an Anvil Devbox. Keep Anvil's `ros2_control` stack running: it owns homing, gravity compensation, motor management, and the 500 Hz hardware loop. Sentinel connects to the Devbox over DDS.
+
+<Note>
+  Use Sentinel Runtime `0.13.0` or later for this integration.
+</Note>
+
+<Warning>
+  Never run the Anvil controller and a raw-CAN OpenArm driver against the same arms. Two hardware owners can send conflicting commands to the motors.
+</Warning>
+
+## Data flow
+
+| Direction | Topic | Type |
+| --- | --- | --- |
+| Devbox → Sentinel | `/joint_states` | `sensor_msgs/msg/JointState` at 500 Hz |
+| Sentinel → left arm | `/follower_l_forward_position_controller/commands` | `std_msgs/msg/Float64MultiArray` |
+| Sentinel → right arm | `/follower_r_forward_position_controller/commands` | `std_msgs/msg/Float64MultiArray` |
+
+Each command array contains eight slots: seven arm joints followed by the gripper joint. The Devbox publishes joint state in a different order. Sentinel maps state and commands by joint name, so the two orders do not need to match.
+
+## Configure the Devbox
+
+In `/home/anvil/anvil-loader/.env.config`, configure the Devbox for external ROS 2 control:
+
+```dotenv
+ROS_DOMAIN_ID=<same-domain-as-sentinel>
+ENABLE_CYCLONEDDS=true
+CYCLONEDDS_PEER_IP=<sentinel-computer-ip>
+CYCLONEDDS_IFACE=<devbox-network-interface>
+ENABLE_VR_TELEOP=false
+ARMS_CONTROL_CONFIG_FILE=openarm_v2_inference.yaml
+```
+
+- Use the same `ROS_DOMAIN_ID` as the Sentinel runtime.
+- Pin Cyclone DDS to the interface connected to the Sentinel computer.
+- Disable Anvil's VR teleoperation so it cannot compete with Sentinel.
+- Use the inference control configuration. Leader-follower configurations do not accept the forward-position topics.
+
+Use wired Ethernet for normal operation, especially when streaming the Devbox cameras.
+
+## Bring up the integration
+
+<Steps>
+  <Step title="Start the Devbox stack">
+    On the Devbox:
+
+    ```bash
+    cd /home/anvil/anvil-loader
+    docker compose up
+    ```
+
+    The arms run their homing sequence during startup. Keep the workspace clear.
+  </Step>
+
+  <Step title="Verify DDS from the Sentinel computer">
+    Run these commands from the same container and DDS configuration that will run Sentinel:
+
+    ```bash
+    ros2 daemon stop
+    ros2 topic list | grep -E "joint_states|forward_position"
+    ros2 topic hz /joint_states
+    ros2 topic echo /joint_states --once
+    ```
+
+    Confirm that both command topics are visible and `/joint_states` contains both arms and grippers.
+  </Step>
+
+  <Step title="Map the Devbox topics">
+    Configure one array output per arm:
+
+    ```yaml
+    bridge:
+      manipulator:
+        enabled: true
+        capability_id: dual_arms
+        command:
+          outputs:
+            - topic: /follower_l_forward_position_controller/commands
+              qos: reliable
+              joint_names:
+                - openarm_left_joint1
+                - openarm_left_joint2
+                - openarm_left_joint3
+                - openarm_left_joint4
+                - openarm_left_joint5
+                - openarm_left_joint6
+                - openarm_left_joint7
+                - openarm_left_finger_joint1
+            - topic: /follower_r_forward_position_controller/commands
+              qos: reliable
+              joint_names:
+                - openarm_right_joint1
+                - openarm_right_joint2
+                - openarm_right_joint3
+                - openarm_right_joint4
+                - openarm_right_joint5
+                - openarm_right_joint6
+                - openarm_right_joint7
+                - openarm_right_finger_joint1
+        state:
+          topic: /joint_states
+          qos: sensor
+          stale_timeout_s: 2.5
+    ```
+
+    The complete configuration also remaps the Devbox's `follower_*` joint names to the OpenArm URDF names and maps each gripper into the eighth array slot. Contact the team in [Slack](https://avea-robotics.slack.com) for the ready-made OpenArm configuration.
+  </Step>
+
+  <Step title="Start Sentinel">
+    Start Sentinel only after the Devbox state stream and both command subscribers are visible. Keep the robot disarmed while you verify the configured joint order and limits.
+  </Step>
+</Steps>
+
+## Connect the Devbox cameras
+
+The Devbox publishes its camera feeds as `sensor_msgs/msg/CompressedImage`. Connect one feed first, then add the remaining views:
+
+| View | Topic |
+| --- | --- |
+| Left wrist | `/cam_wrist_l/image_raw/compressed` |
+| Right wrist | `/cam_wrist_r/image_raw/compressed` |
+| Waist | `/cam_waist/image_raw/compressed` |
+| Chest | `/cam_chest/image_raw/compressed` |
+
+The Sentinel camera configuration must match the Devbox capture resolution and frame rate. See [Camera topics](/ros2/camera-interface) for validation steps.
+
+## Stop and recover safely
+
+- Keep the Anvil web app open during bring-up so you can see motor errors and use its pause or E-stop controls.
+- Disarm Sentinel before resuming from an Anvil pause, E-stop, or motor-error reset. Re-arm only after the Devbox is active and measured state is current.
+- If `/joint_states` goes stale, disarm before re-arming. The bridge fault clears during the deactivate/activate cycle.
+- Do not use network loss or the headset as the emergency-stop path.
+
+<Warning>
+  If an arm moves while the Devbox controller is paused, resuming while Sentinel remains armed can command the previous target immediately. Disarm Sentinel first, resume the Devbox, verify measured state, and then re-arm.
+</Warning>
+
+<Card title="Configure DDS networking" icon="network-wired" href="/ros2/networking" horizontal>
+  Make the Devbox topics discoverable from the Sentinel environment.
+</Card>

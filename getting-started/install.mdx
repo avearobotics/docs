@@ -6,7 +6,7 @@ description: "Install the Sentinel runtime and launcher on the robot computer."
 The Sentinel runtime runs as a container on the computer connected to your robot. This page installs the host dependencies and launcher. Robot configuration is a separate step.
 
 <Note>
-  **Latest version:** `0.11.0`. Versions below `0.7.0` are no longer supported and cannot be used. `0.7.0` introduced major breaking changes — configs made for earlier versions must be replaced. Contact us to update your config.
+  **Latest version:** `0.13.0`. Versions below `0.7.0` are no longer supported and cannot be used. `0.7.0` introduced major breaking changes — configs made for earlier versions must be replaced. Contact us to update your config.
 </Note>
 
 ## Requirements
@@ -72,9 +72,9 @@ Install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-
     if [[ -z "$CONFIG_FILE" ]]; then
         cat >&2 <<EOF
     Usage: $0 <config_file> [version] [neck_calibration_file] [container_name]
-      $0 /abs/path/yam_dual.yaml 0.11.0-amd64-cu13
-      $0 /abs/path/cfg.yaml      0.11.0-jp6.2 /abs/path/neck_calibration.json
-      $0 /abs/path/cfg.yaml      0.11.0-jp6.2 /abs/path/neck_calibration.json my-name
+      $0 /abs/path/yam_dual.yaml 0.13.0-amd64-cu13
+      $0 /abs/path/cfg.yaml      0.13.0-jp6.2 /abs/path/neck_calibration.json
+      $0 /abs/path/cfg.yaml      0.13.0-jp6.2 /abs/path/neck_calibration.json my-name
     EOF
         exit 1
     fi
@@ -171,7 +171,7 @@ To move to a new version, remove the old runtime images first, then start the la
 
 ```shell
 docker images --format '{{.Repository}}:{{.Tag}}' | grep sentinel-runtime | xargs -r docker rmi
-./run_sentinel.sh /absolute/path/to/robot.yaml 0.11.0-amd64-cu13
+./run_sentinel.sh /absolute/path/to/robot.yaml 0.13.0-amd64-cu13
 ```
 
 <Warning>
@@ -180,6 +180,11 @@ docker images --format '{{.Repository}}:{{.Tag}}' | grep sentinel-runtime | xarg
 
 ## Next step
 
-<Card title="Configure your robot" icon="sliders" href="/getting-started/configure-robot" horizontal>
-  Build the robot.yaml the launcher needs, starting from a template.
-</Card>
+<Columns cols={2}>
+  <Card title="Configure your robot" icon="sliders" href="/getting-started/configure-robot">
+    Build the robot.yaml the launcher needs, starting from a template.
+  </Card>
+  <Card title="Add an immersive neck" icon="rotate" href="/hardware/immersive-neck">
+    Use the launcher's optional calibration-file argument for a head-tracked camera neck.
+  </Card>
+</Columns>
